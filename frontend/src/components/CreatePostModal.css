@@ -1,0 +1,50 @@
+.create-post-modal h2 {
+  text-align: center;
+  color: #B71C1C;
+}
+.create-post-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #F5F5F5;
+  padding: 12px;
+  font-size: 1.08rem;
+  resize: vertical;
+  margin-bottom: 1.2rem;
+  min-height: 80px;
+  max-height: 200px;
+  outline: none;
+}
+.create-post-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.create-post-cancel {
+  background: #F5F5F5;
+  color: #B71C1C;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+.create-post-cancel:hover {
+  background: #B71C1C;
+  color: #fff;
+}
+.create-post-submit {
+  background: #B71C1C;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.create-post-submit:hover {
+  background: #D32F2F;
+} 

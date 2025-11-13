@@ -1,0 +1,98 @@
+.account-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 80px 1rem;
+  background: #FEF7ED;
+}
+.account-section {
+  margin-top: 2.5rem;
+  background: #FEF7ED;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 2rem 1.5rem;
+  min-height: 180px;
+  border: 1px solid #BBF7D0;
+}
+.account-section h2 {
+  color: #166534;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.account-section-content {
+  color: #44403C;
+  font-size: 1.08rem;
+}
+@media (max-width: 900px) {
+  .account-section {
+    max-width: 100vw;
+    padding: 0 8px 70px 8px;
+  }
+}
+@media (max-width: 600px) {
+  .account-section {
+    padding: 0 2px 70px 2px;
+    max-width: 100vw;
+    min-width: 0;
+    background: #FEF7ED;
+    border-radius: 0;
+  }
+  .account-section-content {
+    padding: 0;
+  }
+  .account-section > div, .account-section-content > div {
+    border-radius: 16px !important;
+    box-shadow: 0 2px 12px rgba(22,101,52,0.10), 0 1px 4px rgba(0,0,0,0.04);
+    background: linear-gradient(135deg, #FEF7ED 80%, #f0e6d2 100%);
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 16px;
+    margin: 8px 0 4px 0;
+    padding-left: 1px;
+    color: #166534;
+  }
+}
+.account-section > div, .account-section-content > div {
+  border-radius: 18px;
+  box-shadow: 0 4px 18px rgba(22,101,52,0.10), 0 2px 8px rgba(0,0,0,0.04);
+  background: linear-gradient(135deg, #FEF7ED 80%, #f0e6d2 100%);
+  margin-bottom: 14px;
+}
+
+.comment-card {
+  background: #BBF7D0;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #166534;
+}
+
+.comment-header {
+  margin-bottom: 0.75rem;
+}
+
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-type {
+  background: #166534;
+  color: #FEF7ED;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.comment-time {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.comment-content {
+  color: #44403C;
+  line-height: 1.4;
+}

@@ -1,0 +1,5 @@
+- [x] Update Home.js to fix videosResponse.videos?.map and add fallbacks for arrays
+- [x] Update Trending.js to use response.videos?.map with fallback
+- [x] Update SavedSection in App.js to add .catch(() => []) for saved endpoints
+- [x] Update Notifications.js to wrap get in try-catch
+- [x] Test the app to ensure no more console errors
