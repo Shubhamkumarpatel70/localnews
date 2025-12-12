@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { get, post } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import defaultAvatar from "../utils/defaultAvatar";
 import {
   LineChart,
   Line,
@@ -21,8 +24,13 @@ import PostAddIcon from "@mui/icons-material/PostAdd";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import ForumIcon from "@mui/icons-material/Forum";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import LogoutIcon from "@mui/icons-material/Logout";
+import HomeIcon from "@mui/icons-material/Home";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState("dashboard");
   const [stats, setStats] = useState({
     users: 0,
@@ -111,29 +119,25 @@ const AdminDashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
+      const [userGrowthRes, engagementRes, topContentRes] = await Promise.all([
+        get("/api/admin/analytics/user-growth").catch(() => []),
+        get("/api/admin/analytics/engagement").catch(() => []),
+        get("/api/admin/analytics/top-content").catch(() => []),
+      ]);
+      
       setAnalytics({
-        userGrowth: [
-          { month: "Jan", users: 120 },
-          { month: "Feb", users: 150 },
-          { month: "Mar", users: 180 },
-          { month: "Apr", users: 220 },
-          { month: "May", users: 280 },
-          { month: "Jun", users: 320 },
-        ],
-        engagement: [
-          { name: "Posts", value: 45 },
-          { name: "Videos", value: 30 },
-          { name: "Community", value: 25 },
-        ],
-        topContent: [
-          { name: "Breaking News", views: 1250 },
-          { name: "Local Events", views: 980 },
-          { name: "Sports Update", views: 750 },
-          { name: "Weather Alert", views: 620 },
-        ],
+        userGrowth: Array.isArray(userGrowthRes) ? userGrowthRes : [],
+        engagement: Array.isArray(engagementRes) ? engagementRes : [],
+        topContent: Array.isArray(topContentRes) ? topContentRes : [],
       });
     } catch (error) {
       console.error("Error fetching analytics:", error);
+      // Set empty data on error
+      setAnalytics({
+        userGrowth: [],
+        engagement: [],
+        topContent: [],
+      });
     }
   };
 
@@ -219,63 +223,81 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={analytics.userGrowth}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="users"
-                        stroke="#667eea"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {analytics.userGrowth.length === 0 ? (
+                    <div className="flex items-center justify-center h-[300px] text-gray-500">
+                      <p>No user growth data available</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={analytics.userGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="users"
+                          stroke="#667eea"
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Content Engagement</h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.engagement}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {analytics.engagement.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={["#667eea", "#10b981", "#f59e0b"][index % 3]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {analytics.engagement.length === 0 ? (
+                    <div className="flex items-center justify-center h-[300px] text-gray-500">
+                      <p>No engagement data available</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={analytics.engagement}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) =>
+                            `${name} ${(percent * 100).toFixed(0)}%`
+                          }
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {analytics.engagement.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={["#667eea", "#10b981", "#f59e0b"][index % 3]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Top Content Views</h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.topContent}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="views" fill="#10b981" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {analytics.topContent.length === 0 ? (
+                    <div className="flex items-center justify-center h-[300px] text-gray-500">
+                      <p>No content views data available</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={analytics.topContent}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="views" fill="#10b981" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
@@ -284,13 +306,22 @@ const AdminDashboard = () => {
       case "users":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Manage Users</h2>
-            <div className="space-y-4">
-              {users.map((user) => (
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900">Manage Users</h2>
+              <div className="text-sm text-gray-500">Total: {users.length}</div>
+            </div>
+            {users.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                <PeopleIcon className="text-6xl text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No users found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {users.map((user) => (
                 <div key={user._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <img 
-                      src={user.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"} 
+                      src={user.avatar || defaultAvatar} 
                       alt={user.username}
                       className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                     />
@@ -318,16 +349,26 @@ const AdminDashboard = () => {
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case "posts":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Manage Posts</h2>
-            <div className="space-y-4">
-              {posts.map((post) => (
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900">Manage Posts</h2>
+              <div className="text-sm text-gray-500">Total: {posts.length}</div>
+            </div>
+            {posts.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                <PostAddIcon className="text-6xl text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No posts found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
                 <div key={post._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900">{post.title}</h4>
@@ -340,16 +381,26 @@ const AdminDashboard = () => {
                     Delete
                   </button>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case "videos":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Manage Videos</h2>
-            <div className="space-y-4">
-              {videos.map((video) => (
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900">Manage Videos</h2>
+              <div className="text-sm text-gray-500">Total: {videos.length}</div>
+            </div>
+            {videos.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                <VideoLibraryIcon className="text-6xl text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No videos found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {videos.map((video) => (
                 <div key={video._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900">{video.title}</h4>
@@ -362,16 +413,26 @@ const AdminDashboard = () => {
                     Delete
                   </button>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case "community":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Manage Community</h2>
-            <div className="space-y-4">
-              {community.map((post) => (
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900">Manage Community</h2>
+              <div className="text-sm text-gray-500">Total: {community.length}</div>
+            </div>
+            {community.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                <ForumIcon className="text-6xl text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No community posts found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {community.map((post) => (
                 <div key={post._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
                   <div>
                     <p className="text-gray-900">{post.content}</p>
@@ -384,8 +445,9 @@ const AdminDashboard = () => {
                     Delete
                   </button>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       default:
@@ -401,23 +463,53 @@ const AdminDashboard = () => {
     { key: "community", label: "Community", icon: <ForumIcon /> },
   ];
 
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      logout();
+      navigate("/login");
+    }
+  };
+
   return (
-    <div className="pt-14 pb-20 min-h-screen bg-gray-50 flex">
-      <div className="w-64 bg-white shadow-lg min-h-screen">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <AdminPanelSettingsIcon className="text-3xl text-indigo-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
+      {/* Sidebar */}
+      <div className="w-72 bg-white shadow-2xl min-h-screen flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <AdminPanelSettingsIcon className="text-2xl text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+              <p className="text-xs text-indigo-100">Control Center</p>
+            </div>
+          </div>
+          {/* Admin User Info */}
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-white/20">
+            <img
+              src={user?.avatar || defaultAvatar}
+              alt={user?.username || "Admin"}
+              className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">
+                {user?.username || "Admin"}
+              </p>
+              <p className="text-xs text-indigo-100 truncate">{user?.email || ""}</p>
+            </div>
           </div>
         </div>
-        <nav className="p-4 space-y-2">
+
+        {/* Navigation */}
+        <nav className="p-4 space-y-2 flex-1">
           {navItems.map((item) => (
             <button
               key={item.key}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
                 activeSection === item.key
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-105"
+                  : "text-gray-700 hover:bg-gray-100 hover:shadow-md"
               }`}
               onClick={() => setActiveSection(item.key)}
             >
@@ -426,9 +518,50 @@ const AdminDashboard = () => {
             </button>
           ))}
         </nav>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-gray-200 space-y-2">
+          <button
+            onClick={() => navigate("/")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <HomeIcon />
+            Back to Site
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogoutIcon />
+            Logout
+          </button>
+        </div>
       </div>
-      <div className="flex-1 p-8 overflow-auto">
-        {renderContent()}
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Top Bar */}
+        <div className="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200">
+          <div className="px-8 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {navItems.find((item) => item.key === activeSection)?.label || "Dashboard"}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Manage and monitor your platform</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative">
+                <NotificationsIcon />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="p-8">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

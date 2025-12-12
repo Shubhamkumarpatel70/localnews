@@ -517,7 +517,9 @@ export default function VideoCard({
               By {video.author?.username || "Unknown"}
             </span>
             <span className="video-card-time">
-              {new Date(video.createdAt).toLocaleString()}
+              {video.createdAt || video.uploadDate
+                ? new Date(video.createdAt || video.uploadDate).toLocaleString()
+                : "Date not available"}
             </span>
           </div>
           <div className="video-card-actions">

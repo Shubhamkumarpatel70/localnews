@@ -44,7 +44,13 @@ export default function UserProfile() {
         const videosResponse = await get(
           `/api/videos?uploadedBy=${userResponse._id}`
         );
-        setVideos(videosResponse || []);
+        // Transform videos to map uploadedBy to author and uploadDate to createdAt
+        const transformedVideos = (videosResponse.videos || videosResponse || []).map((video) => ({
+          ...video,
+          author: video.uploadedBy, // Map uploadedBy to author for consistency
+          createdAt: video.uploadDate || video.createdAt, // Map uploadDate to createdAt for consistency
+        }));
+        setVideos(transformedVideos);
       } catch (error) {
         console.error("Error fetching user data:", error);
         navigate("/404");

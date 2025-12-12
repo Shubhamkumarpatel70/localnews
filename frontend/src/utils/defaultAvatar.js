@@ -1,6 +1,7 @@
 // Default avatar as data URI to avoid 404 errors
-export const getDefaultAvatar = () => {
-  // Simple SVG avatar as data URI
-  return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E";
-};
+const defaultAvatar = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNDQ0NDQ0MiLz48cGF0aCBkPSJNNzUgNjEuNmMtMi41LTQuMi02LjctNy4xLTExLjYtOC41LTMuMi0wLjktNi41LTEuNC05LjgtMS40cy02LjYgMC41LTkuOCAxLjRjLTQuOSAxLjQtOS4xIDQuMy0xMS42IDguNWMtMi41IDQuMi0zLjkgOS4xLTMuOSA1LjR2MTMuNmMwIDUuNSAzLjkgMTAgOC43IDEwaDMxLjZjNC44IDAgOC43LTQuNSA4LjctMTB2LTEzLjZjMC0zLjcgMS40LTEwLjYtMy45LTUuNHoiIGZpbGw9IiNGRkZGRkYiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjM4LjUiIHI9IjE3LjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Z2c+";
+
+export const getDefaultAvatar = () => defaultAvatar;
+
+export default defaultAvatar;
 

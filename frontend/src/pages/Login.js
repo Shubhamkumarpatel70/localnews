@@ -23,7 +23,15 @@ export default function Login() {
     try {
       const res = await post('/api/auth/login', { email, password });
       login(res.user, res.token);
-      navigate(from, { replace: true });
+      
+      // Redirect based on user role
+      if (res.user.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        // If user was trying to access a specific page, go there, otherwise go to account
+        const redirectTo = from !== '/' ? from : '/account/profile';
+        navigate(redirectTo, { replace: true });
+      }
     } catch (err) {
       const errorMessage = err?.message || 'Login failed. Please try again.';
       setError(errorMessage);

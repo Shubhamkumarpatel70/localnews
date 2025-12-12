@@ -49,7 +49,7 @@ export default function Home() {
   const [filter, setFilter] = useState("all");
   const [currentlyPlayingVideoId, setCurrentlyPlayingVideoId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [hashtags, setHashtags] = useState([]);
   const [commentModal, setCommentModal] = useState({
     isOpen: false,
@@ -91,8 +91,10 @@ export default function Home() {
           thumbnail:
             video.thumbnail ||
             "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80",
-          liked: isAuthenticated
-            ? video.likes?.includes(video.uploadedBy?._id)
+          author: video.uploadedBy, // Map uploadedBy to author for consistency
+          createdAt: video.uploadDate || video.createdAt, // Map uploadDate to createdAt for consistency
+          liked: isAuthenticated && user
+            ? (Array.isArray(video.likes) ? video.likes.includes(user._id) : false)
             : false,
           saved: false,
         }));
