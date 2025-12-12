@@ -4,7 +4,8 @@ import { get, post } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import NewsCard from "../components/NewsCard";
 import VideoCard from "../components/VideoCard";
-import "./UserProfile.css";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 
 export default function UserProfile() {
   const { username } = useParams();
@@ -24,34 +25,29 @@ export default function UserProfile() {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-
-        // Fetch user profile
         const userResponse = await get(`/api/user/profile/${username}`);
         setUser(userResponse);
         setFollowersCount(userResponse.followers?.length || 0);
         setFollowingCount(userResponse.following?.length || 0);
 
-        // Check if current user is following this user
         if (isAuthenticated && currentUser) {
           setIsFollowing(
             userResponse.followers?.includes(currentUser._id) || false
           );
         }
 
-        // Fetch user's posts
         const postsResponse = await get(
           `/api/posts?author=${encodeURIComponent(userResponse.username)}`
         );
         setPosts(postsResponse.posts || []);
 
-        // Fetch user's videos
         const videosResponse = await get(
           `/api/videos?uploadedBy=${userResponse._id}`
         );
         setVideos(videosResponse || []);
       } catch (error) {
         console.error("Error fetching user data:", error);
-        navigate("/404"); // Redirect to 404 if user not found
+        navigate("/404");
       } finally {
         setLoading(false);
       }
@@ -99,7 +95,6 @@ export default function UserProfile() {
 
       const response = await post(endpoint, {});
 
-      // Update local state
       if (type === "post") {
         setPosts((posts) =>
           posts.map((post) =>
@@ -144,7 +139,6 @@ export default function UserProfile() {
 
       const response = await post(endpoint, {});
 
-      // Update local state
       if (type === "post") {
         setPosts((posts) =>
           posts.map((post) =>
@@ -193,13 +187,11 @@ export default function UserProfile() {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
       return;
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB");
       return;
@@ -236,10 +228,10 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="user-profile">
-        <div className="profile-loading">
-          <div className="spinner"></div>
-          <p>Loading profile...</p>
+      <div className="pt-14 pb-20 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
@@ -247,11 +239,16 @@ export default function UserProfile() {
 
   if (!user) {
     return (
-      <div className="user-profile">
-        <div className="profile-not-found">
-          <h2>User not found</h2>
-          <p>The user you're looking for doesn't exist.</p>
-          <button onClick={() => navigate("/")}>Go Home</button>
+      <div className="pt-14 pb-20 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">User not found</h2>
+          <p className="text-gray-600 mb-4">The user you're looking for doesn't exist.</p>
+          <button 
+            onClick={() => navigate("/")}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
@@ -261,124 +258,146 @@ export default function UserProfile() {
     isAuthenticated && currentUser && currentUser._id === user._id;
 
   return (
-    <div className="user-profile">
-      <div className="profile-header">
-        <div className="profile-avatar">
-          <img
-            src={user.avatar || "/default-avatar.png"}
-            alt={user.username}
-            onError={(e) => {
-              e.target.src = "/default-avatar.png";
-            }}
-          />
-          {isOwnProfile && (
-            <div className="avatar-upload">
-              <label htmlFor="avatar-input" className="avatar-upload-btn">
-                {uploadingAvatar ? (
-                  <div className="upload-spinner"></div>
-                ) : (
-                  "📷"
-                )}
-              </label>
+    <div className="pt-14 pb-20 min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="relative">
+              <img
+                src={user.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"}
+                alt={user.username}
+                className="w-32 h-32 rounded-full object-cover border-4 border-indigo-200"
+                onError={(e) => {
+                  e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E";
+                }}
+              />
+              {isOwnProfile && (
+                <label
+                  htmlFor="avatar-input"
+                  className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors shadow-lg"
+                >
+                  {uploadingAvatar ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <PhotoCameraIcon className="text-xl" />
+                  )}
+                </label>
+              )}
               <input
                 id="avatar-input"
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarUpload}
-                style={{ display: "none" }}
+                className="hidden"
               />
             </div>
-          )}
-        </div>
-        <div className="profile-info">
-          <h1>{user.username}</h1>
-          <p className="profile-email">{user.email}</p>
-          <div className="profile-stats">
-            <div className="stat">
-              <span className="stat-number">{followersCount}</span>
-              <span className="stat-label">Followers</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">{followingCount}</span>
-              <span className="stat-label">Following</span>
-            </div>
-            <div className="stat">
-              <span className="stat-number">
-                {posts.length + videos.length}
-              </span>
-              <span className="stat-label">Posts</span>
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">{user.username}</h1>
+              <p className="text-gray-600 mb-4">{user.email}</p>
+              <div className="flex gap-6 mb-4 justify-center md:justify-start">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">{followersCount}</div>
+                  <div className="text-sm text-gray-600">Followers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">{followingCount}</div>
+                  <div className="text-sm text-gray-600">Following</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {posts.length + videos.length}
+                  </div>
+                  <div className="text-sm text-gray-600">Posts</div>
+                </div>
+              </div>
+              {!isOwnProfile && (
+                <button
+                  className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                    isFollowing
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  }`}
+                  onClick={handleFollow}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              )}
             </div>
           </div>
-          {!isOwnProfile && (
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg mb-6">
+          <div className="flex border-b border-gray-200">
             <button
-              className={`follow-btn ${isFollowing ? "following" : ""}`}
-              onClick={handleFollow}
+              className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+                activeTab === "posts"
+                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              onClick={() => setActiveTab("posts")}
             >
-              {isFollowing ? "Following" : "Follow"}
+              Posts ({posts.length})
             </button>
-          )}
+            <button
+              className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+                activeTab === "videos"
+                  ? "text-indigo-600 border-b-2 border-indigo-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              onClick={() => setActiveTab("videos")}
+            >
+              Videos ({videos.length})
+            </button>
+          </div>
+
+          <div className="p-6">
+            {activeTab === "posts" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {posts.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-gray-500">
+                    <AccountCircleIcon className="text-6xl mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">No posts yet</p>
+                  </div>
+                ) : (
+                  posts.map((post) => (
+                    <NewsCard
+                      key={post._id}
+                      news={post}
+                      onLike={() => handleLike(post._id, "post")}
+                      onSave={() => handleSave(post._id, "post")}
+                      onShare={() => handleShare(post._id)}
+                      liked={post.liked}
+                      saved={post.saved}
+                      likesCount={post.likes}
+                      savedCount={post.savedCount}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === "videos" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {videos.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-gray-500">
+                    <AccountCircleIcon className="text-6xl mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">No videos yet</p>
+                  </div>
+                ) : (
+                  videos.map((video) => (
+                    <VideoCard
+                      key={video._id}
+                      video={video}
+                      onSave={() => handleSave(video._id, "video")}
+                      onShare={() => handleShare(video._id)}
+                      onComment={() => {}}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="profile-tabs">
-        <button
-          className={activeTab === "posts" ? "active" : ""}
-          onClick={() => setActiveTab("posts")}
-        >
-          Posts ({posts.length})
-        </button>
-        <button
-          className={activeTab === "videos" ? "active" : ""}
-          onClick={() => setActiveTab("videos")}
-        >
-          Videos ({videos.length})
-        </button>
-      </div>
-
-      <div className="profile-content">
-        {activeTab === "posts" && (
-          <div className="posts-grid">
-            {posts.length === 0 ? (
-              <div className="empty-state">
-                <p>No posts yet</p>
-              </div>
-            ) : (
-              posts.map((post) => (
-                <NewsCard
-                  key={post._id}
-                  news={post}
-                  onLike={() => handleLike(post._id, "post")}
-                  onSave={() => handleSave(post._id, "post")}
-                  onShare={() => handleShare(post._id)}
-                  liked={post.liked}
-                  saved={post.saved}
-                  likesCount={post.likes}
-                  savedCount={post.savedCount}
-                />
-              ))
-            )}
-          </div>
-        )}
-
-        {activeTab === "videos" && (
-          <div className="videos-grid">
-            {videos.length === 0 ? (
-              <div className="empty-state">
-                <p>No videos yet</p>
-              </div>
-            ) : (
-              videos.map((video) => (
-                <VideoCard
-                  key={video._id}
-                  video={video}
-                  onSave={() => handleSave(video._id, "video")}
-                  onShare={() => handleShare(video._id)}
-                  onComment={() => {}} // TODO: Implement comment functionality
-                />
-              ))
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

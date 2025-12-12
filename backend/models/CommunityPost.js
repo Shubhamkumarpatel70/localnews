@@ -12,6 +12,7 @@ const communityPostSchema = new mongoose.Schema({
   category: { type: String, enum: ['general', 'events', 'discussion', 'help', 'announcement'], default: 'general' },
   isPublished: { type: Boolean, default: true },
   views: { type: Number, default: 0 },
+  savedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

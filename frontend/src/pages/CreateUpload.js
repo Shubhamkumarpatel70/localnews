@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import TagIcon from '@mui/icons-material/Tag';
 
 export default function CreateUpload() {
+  const navigate = useNavigate();
   const [video, setVideo] = useState(null);
   const [videoURL, setVideoURL] = useState('');
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [tags, setTags] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setLoadingLocation(true);
@@ -37,38 +43,127 @@ export default function CreateUpload() {
     }
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    // For now, just log the values
-    console.log({ video, title, location, tags: tags.split(',').map(t => t.trim()) });
-    alert('Video upload submitted! (Check console for values)');
+    setSubmitting(true);
+    
+    const formData = new FormData();
+    formData.append('video', video);
+    formData.append('title', title);
+    formData.append('location', location);
+    formData.append('tags', tags);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/videos', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!res.ok) throw new Error(await res.text());
+      alert('Video uploaded successfully!');
+      navigate('/');
+    } catch (err) {
+      alert('Failed to upload video: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div style={{padding: '1.5rem', paddingBottom: '70px', maxWidth: 420, margin: '0 auto'}}>
-      <h2>Upload Video</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ fontWeight: 600 }}>Video File</label><br />
-          <input type="file" accept="video/*" onChange={handleVideoChange} required />
-          {videoURL && (
-            <video src={videoURL} controls style={{ width: '100%', marginTop: 10, borderRadius: 12, background: '#000' }} />
-          )}
+    <div className="pt-14 pb-20 min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <VideoLibraryIcon className="text-4xl text-purple-600" />
+            <h2 className="text-3xl font-bold text-gray-900">Upload Video</h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="flex items-center gap-2 font-semibold text-gray-700 mb-2">
+                <VideoLibraryIcon className="text-purple-600" />
+                Video File
+              </label>
+              <input 
+                type="file" 
+                accept="video/*" 
+                onChange={handleVideoChange} 
+                required
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all"
+              />
+              {videoURL && (
+                <video 
+                  src={videoURL} 
+                  controls 
+                  className="w-full mt-4 rounded-xl bg-black"
+                />
+              )}
+            </div>
+            
+            <div>
+              <label className="block font-semibold text-gray-700 mb-2">Title</label>
+              <input 
+                type="text" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                required 
+                maxLength={100}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all"
+                placeholder="Enter video title"
+              />
+            </div>
+            
+            <div>
+              <label className="flex items-center gap-2 font-semibold text-gray-700 mb-2">
+                <LocationOnIcon className="text-purple-600" />
+                Location
+              </label>
+              <input 
+                type="text" 
+                value={loadingLocation ? 'Fetching location...' : location} 
+                readOnly
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600"
+              />
+            </div>
+            
+            <div>
+              <label className="flex items-center gap-2 font-semibold text-gray-700 mb-2">
+                <TagIcon className="text-purple-600" />
+                Tags (comma separated)
+              </label>
+              <input 
+                type="text" 
+                value={tags} 
+                onChange={e => setTags(e.target.value)} 
+                placeholder="news, event, sports"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all"
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-lg border-none cursor-pointer transition-all duration-300 shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:-translate-y-0.5 active:translate-y-0 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <VideoLibraryIcon />
+                  <span>Upload Video</span>
+                </>
+              )}
+            </button>
+          </form>
         </div>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ fontWeight: 600 }}>Title</label><br />
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} required maxLength={100} style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc' }} />
-        </div>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ fontWeight: 600 }}>Location</label><br />
-          <input type="text" value={loadingLocation ? 'Fetching location...' : location} readOnly style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc', background: '#f5f5f5' }} />
-        </div>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ fontWeight: 600 }}>Tags (comma separated)</label><br />
-          <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="news, event, sports" style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ccc' }} />
-        </div>
-        <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 8, background: '#2196f3', color: '#fff', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer' }}>Upload Video</button>
-      </form>
+      </div>
     </div>
   );
-} 
+}

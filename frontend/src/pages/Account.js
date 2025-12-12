@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import AccountMenu from "../components/AccountMenu";
-import "./Account.css";
 import { useAuth } from "../context/AuthContext";
 import NewsCard from "../components/NewsCard";
 import { get, del } from "../utils/api";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const sections = {
-  profile: "Profile Section (edit your info here)",
+  profile: "Profile",
   mynews: "My News",
-  mycomments: "My Comments Section (your comments)",
-  "community-posts": "Community Posts Section (your community posts)",
-  saved: "My Saved Section (your saved videos, posts etc.)",
-  settings: "Settings Section (preferences, etc.)",
+  mycomments: "My Comments",
+  "community-posts": "Community Posts",
+  saved: "My Saved",
+  settings: "Settings",
 };
 
 function MyNews() {
@@ -53,12 +53,11 @@ function MyNews() {
 
   if (loading) {
     return (
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="card-skeleton"
-            style={{ height: 180, borderRadius: 12, background: "#f5f5f5" }}
+            className="h-48 rounded-xl bg-gray-100 animate-pulse"
           />
         ))}
       </div>
@@ -66,13 +65,19 @@ function MyNews() {
   }
 
   if (!isAuthenticated) {
-    return <div>Please login to view your uploaded news.</div>;
+    return (
+      <div className="text-center py-12 text-gray-600">
+        Please login to view your uploaded news.
+      </div>
+    );
   }
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {newsList.length === 0 ? (
-        <div>You have not uploaded any news yet.</div>
+        <div className="col-span-full text-center py-12 text-gray-500">
+          <p className="text-lg">You have not uploaded any news yet.</p>
+        </div>
       ) : (
         newsList.map((n) => (
           <NewsCard key={n._id} news={n} onDelete={handleDelete} />
@@ -126,12 +131,11 @@ function MyComments() {
 
   if (loading) {
     return (
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="card-skeleton"
-            style={{ height: 120, borderRadius: 12, background: "#f5f5f5" }}
+            className="h-32 rounded-xl bg-gray-100 animate-pulse"
           />
         ))}
       </div>
@@ -139,19 +143,25 @@ function MyComments() {
   }
 
   if (!isAuthenticated) {
-    return <div>Please login to view your comments.</div>;
+    return (
+      <div className="text-center py-12 text-gray-600">
+        Please login to view your comments.
+      </div>
+    );
   }
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="space-y-4">
       {comments.length === 0 ? (
-        <div>You have not posted any comments yet.</div>
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg">You have not posted any comments yet.</p>
+        </div>
       ) : (
         comments.map((comment) => (
-          <div key={comment._id} className="comment-card">
-            <div className="comment-header">
-              <div className="comment-meta">
-                <span className="comment-type">
+          <div key={comment._id} className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
                   {comment.news
                     ? "News"
                     : comment.post
@@ -162,12 +172,12 @@ function MyComments() {
                     ? "Video"
                     : "Unknown"}
                 </span>
-                <span className="comment-time">
+                <span className="text-xs text-gray-500">
                   {getTimeAgo(comment.createdAt)}
                 </span>
               </div>
-              <div className="comment-content">{comment.content}</div>
             </div>
+            <div className="text-gray-800">{comment.content}</div>
           </div>
         ))
       )}
@@ -184,8 +194,6 @@ function MySaved() {
     async function fetchSavedItems() {
       setLoading(true);
       try {
-        // This would need to be implemented in the backend
-        // For now, show empty state
         setSavedItems([]);
       } catch (e) {
         console.error("Failed to load saved items", e);
@@ -204,12 +212,11 @@ function MySaved() {
 
   if (loading) {
     return (
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="card-skeleton"
-            style={{ height: 180, borderRadius: 12, background: "#f5f5f5" }}
+            className="h-48 rounded-xl bg-gray-100 animate-pulse"
           />
         ))}
       </div>
@@ -217,16 +224,22 @@ function MySaved() {
   }
 
   if (!isAuthenticated) {
-    return <div>Please login to view your saved items.</div>;
+    return (
+      <div className="text-center py-12 text-gray-600">
+        Please login to view your saved items.
+      </div>
+    );
   }
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="space-y-4">
       {savedItems.length === 0 ? (
-        <div>You have not saved any items yet.</div>
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg">You have not saved any items yet.</p>
+        </div>
       ) : (
         savedItems.map((item) => (
-          <div key={item._id} className="saved-item-card">
+          <div key={item._id} className="bg-white rounded-xl shadow-md p-6">
             {/* Render saved item */}
           </div>
         ))
@@ -239,7 +252,6 @@ export default function Account() {
   const [open, setOpen] = useState(true);
   const [section, setSection] = useState("profile");
 
-  // Listen for global event to open the drawer
   useEffect(() => {
     const handler = () => setOpen(true);
     window.addEventListener("openAccountMenu", handler);
@@ -255,27 +267,34 @@ export default function Account() {
   };
 
   return (
-    <div className="account-page">
+    <div className="pt-14 pb-20 min-h-screen bg-gray-50">
       <AccountMenu
         open={open}
         onClose={handleClose}
         onSelect={handleSelect}
         selected={section}
       />
-      <div className="account-section">
-        <h2>
-          {sections[section] ? section.replace(/([a-z])([A-Z])/g, "$1 $2") : ""}
-        </h2>
-        <div className="account-section-content">
-          {section === "mynews" ? (
-            <MyNews />
-          ) : section === "mycomments" ? (
-            <MyComments />
-          ) : section === "saved" ? (
-            <MySaved />
-          ) : (
-            sections[section] || "Select an option."
-          )}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <AccountCircleIcon className="text-4xl text-indigo-600" />
+            <h2 className="text-3xl font-bold text-gray-900">
+              {sections[section] || "Account"}
+            </h2>
+          </div>
+          <div className="mt-6">
+            {section === "mynews" ? (
+              <MyNews />
+            ) : section === "mycomments" ? (
+              <MyComments />
+            ) : section === "saved" ? (
+              <MySaved />
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">{sections[section] || "Select an option."}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

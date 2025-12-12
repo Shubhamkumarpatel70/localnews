@@ -8,7 +8,6 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCommentSection from "./VideoCommentSection";
-import "./CommunityPostCard.css";
 import { useNavigate } from "react-router-dom";
 
 export default function CommunityPostCard({
@@ -37,56 +36,62 @@ export default function CommunityPostCard({
   };
 
   return (
-    <div className="community-post-card">
-      <div
-        className="community-post-header"
-        style={{ display: "flex", alignItems: "center", gap: 10 }}
-      >
+    <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <img
-          src={post.author.avatar}
-          alt={post.author.username}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate(`/user/${post.author.username}`)}
+          src={post.author?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"}
+          alt={post.author?.username}
+          className="w-10 h-10 rounded-full object-cover cursor-pointer border-2 border-gray-200"
+          onClick={() => navigate(`/user/${post.author?.username}`)}
         />
-        <span
-          style={{ fontWeight: 600, color: "#222", cursor: "pointer" }}
-          onClick={() => navigate(`/user/${post.author.username}`)}
-        >
-          {post.author.username}
-        </span>
-        <div style={{ flex: 1 }}>
-          <div className="community-post-time">
+        <div className="flex-1 min-w-0">
+          <span
+            className="font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors"
+            onClick={() => navigate(`/user/${post.author?.username}`)}
+          >
+            {post.author?.username}
+          </span>
+          <div className="text-xs text-gray-500">
             {new Date(post.createdAt).toLocaleString()}
           </div>
         </div>
         {(onEdit || onDelete) && (
-          <div className="community-post-actions-admin">
+          <div className="flex gap-2">
             {onEdit && (
-              <button className="edit-btn" onClick={onEdit} title="Edit">
+              <button
+                className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-colors"
+                onClick={onEdit}
+                title="Edit"
+              >
                 <EditIcon />
               </button>
             )}
             {onDelete && (
-              <button className="delete-btn" onClick={onDelete} title="Delete">
+              <button
+                className="p-2 rounded-full hover:bg-red-50 text-red-600 transition-colors"
+                onClick={onDelete}
+                title="Delete"
+              >
                 <DeleteIcon />
               </button>
             )}
           </div>
         )}
       </div>
-      <div className="community-post-content">
+      
+      <div className="text-gray-800 mb-4 leading-relaxed">
         {post.content}{" "}
-        {post.edited && <span className="community-post-edited">(edited)</span>}
+        {post.edited && (
+          <span className="text-xs text-gray-500 italic">(edited)</span>
+        )}
       </div>
-      <div className="community-post-actions">
+      
+      <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-200">
         <button
           onClick={onLike}
-          className={post.liked ? "liked" : ""}
+          className={`flex items-center gap-1 font-semibold transition-colors ${
+            post.liked ? "text-red-600" : "text-gray-600 hover:text-red-600"
+          }`}
           title="Like"
         >
           {post.liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}{" "}
@@ -96,7 +101,11 @@ export default function CommunityPostCard({
             ? post.likes.length
             : 0}
         </button>
-        <button onClick={handleOpenComments} title="Comment">
+        <button
+          onClick={handleOpenComments}
+          className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-semibold transition-colors"
+          title="Comment"
+        >
           <ChatBubbleOutlineIcon />{" "}
           {Array.isArray(post.comments)
             ? post.comments.length
@@ -104,35 +113,31 @@ export default function CommunityPostCard({
             ? post.comments
             : 0}
         </button>
-        <button onClick={handleShare} title="Share">
+        <button
+          onClick={handleShare}
+          className="text-gray-600 hover:text-indigo-600 transition-colors"
+          title="Share"
+        >
           <ShareIcon />
         </button>
         <button
           onClick={onSave}
-          className={post.saved ? "saved" : ""}
+          className={`transition-colors ${
+            post.saved ? "text-indigo-600" : "text-gray-600 hover:text-indigo-600"
+          }`}
           title="Save"
         >
           {post.saved ? <BookmarkIcon /> : <BookmarkBorderIcon />}
         </button>
       </div>
+      
       <button
-        style={{
-          marginTop: 10,
-          background: "#166534",
-          color: "#FEF7ED",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 18px",
-          fontWeight: 600,
-          cursor: "pointer",
-          transition: "background 0.2s",
-        }}
-        onMouseOver={(e) => (e.target.style.background = "#C2410C")}
-        onMouseOut={(e) => (e.target.style.background = "#166534")}
+        className="w-full py-2 bg-green-700 hover:bg-orange-600 text-white border-none rounded-lg font-semibold cursor-pointer transition-colors duration-200"
         onClick={() => navigate(`/post/${post._id}`)}
       >
         Read More
       </button>
+      
       <VideoCommentSection
         open={commentOpen}
         onClose={handleCloseComments}

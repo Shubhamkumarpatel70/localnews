@@ -8,7 +8,6 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import VideoCommentSection from "./VideoCommentSection";
-import "./VideoCard.css";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate } from "react-router-dom";
 

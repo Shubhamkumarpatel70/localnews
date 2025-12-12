@@ -31,28 +31,17 @@ exports.updateProfile = async (req, res) => {
     if (req.body.username) updates.username = req.body.username;
     if (req.body.email) updates.email = req.body.email;
 
-    // Handle avatar upload to Cloudinary
+    // Handle avatar upload to MongoDB GridFS
     if (req.file) {
-      const cloudinary = require("../config/cloudinary");
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream(
-            {
-              folder: "avatars",
-              public_id: `avatar_${req.user.id}_${Date.now()}`,
-              transformation: [
-                { width: 300, height: 300, crop: "fill", gravity: "face" },
-                { quality: "auto" },
-              ],
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          )
-          .end(req.file.buffer);
+      const { uploadFile } = require("../utils/gridfs");
+      const filename = `avatar_${req.user.id}_${Date.now()}_${req.file.originalname}`;
+      const fileResult = await uploadFile(req.file.buffer, filename, {
+        contentType: req.file.mimetype,
+        uploadedBy: req.user.id,
+        originalName: req.file.originalname,
+        type: "avatar",
       });
-      updates.avatar = result.secure_url;
+      updates.avatar = `/api/files/${fileResult.id}`;
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, {

@@ -64,6 +64,7 @@ safeMount("/api/comments", "./routes/comments");
 safeMount("/api/videos", "./routes/videos");
 safeMount("/api/posts", "./routes/posts");
 safeMount("/api/community", "./routes/community");
+safeMount("/api/files", "./routes/files");
 
 app.use(express.static(path.join(__dirname, "..", "frontend", "build")));
 

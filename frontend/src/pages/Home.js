@@ -4,7 +4,6 @@ import VideoCard from "../components/VideoCard";
 import CommunityPostCard from "../components/CommunityPostCard";
 import CommentModal from "../components/CommentModal";
 import PopupModal from "../components/PopupModal";
-import "./Home.css";
 import LiveTvIcon from "@mui/icons-material/LiveTv";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { get, post } from "../utils/api";
@@ -12,77 +11,25 @@ import { useAuth } from "../context/AuthContext";
 
 function LiveCard({ live }) {
   return (
-    <div
-      className="live-card"
-      style={{
-        background: "var(--background-color)",
-        borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-        marginBottom: "1.2rem",
-        padding: "1.2rem 1rem",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        border: "2px solid var(--accent-color)",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: 400,
-          aspectRatio: "16/9",
-          background: "#000",
-          borderRadius: 10,
-          overflow: "hidden",
-          marginBottom: 12,
-        }}
-      >
+    <div className="bg-gray-50 rounded-xl shadow-sm mb-5 p-5 flex flex-col items-center border-2 border-orange-600">
+      <div className="relative w-full max-w-md aspect-video bg-black rounded-lg overflow-hidden mb-3">
         <video
           src={live.url}
           poster={live.thumbnail}
           controls
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            background: "#000",
-          }}
+          className="w-full h-full object-cover bg-black"
         />
-        <span
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            background: "var(--accent-color)",
-            color: "var(--background-color)",
-            borderRadius: 6,
-            padding: "2px 10px",
-            fontWeight: 600,
-            fontSize: 14,
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
+        <span className="absolute top-2 left-2 bg-orange-600 text-white rounded-md px-2.5 py-0.5 font-semibold text-sm flex items-center gap-1">
           <LiveTvIcon fontSize="small" /> LIVE
         </span>
       </div>
-      <h2
-        style={{ color: "var(--accent-color)", fontSize: "1.1rem", margin: 0 }}
-      >
+      <h2 className="text-orange-600 text-lg font-semibold m-0">
         {live.title}
       </h2>
-      <div
-        style={{
-          color: "var(--text-color)",
-          fontSize: 15,
-          margin: "6px 0 0 0",
-        }}
-      >
+      <div className="text-gray-900 text-sm mt-1.5">
         By {live.author?.username || "Unknown"} &bull; {live.viewers} viewers
       </div>
-      <div style={{ color: "var(--text-color)", fontSize: 14, marginTop: 2 }}>
+      <div className="text-gray-900 text-sm mt-0.5">
         {new Date(live.createdAt).toLocaleString()}
       </div>
     </div>
@@ -140,7 +87,7 @@ export default function Home() {
         const videos = (videosResponse.videos || []).map((video) => ({
           ...video,
           type: video.isLive ? "live" : "video",
-          url: video.isLive ? null : `/uploads/videos/${video.filename}`,
+          url: video.isLive ? null : (video.path || `/api/files/${video._id}`), // Use path from backend or fallback to GridFS URL
           thumbnail:
             video.thumbnail ||
             "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80",
@@ -309,6 +256,25 @@ export default function Home() {
       } catch (error) {
         setModalMessage("Failed to save news");
       }
+    } else if (type === "community") {
+      try {
+        const communityItem = feed.find((item) => item._id === id);
+        const endpoint = `/api/community/${id}/save`;
+        const response = await post(endpoint, {});
+        setFeed((feed) =>
+          feed.map((item) =>
+            item._id === id
+              ? {
+                  ...item,
+                  saved: response.saved,
+                  savedCount: response.savedCount,
+                }
+              : item
+          )
+        );
+      } catch (error) {
+        setModalMessage("Failed to save community post");
+      }
     } else {
       setModalMessage(
         "Save feature is not available for this content type yet."
@@ -361,30 +327,23 @@ export default function Home() {
       : { [filter]: filteredFeed };
 
   return (
-    <div className="home-page">
-      <div className="home-banner">
-        <h1>Welcome to Local News</h1>
-        <p>Stay updated with the latest news and videos in your area.</p>
+    <div className="pt-14 pb-20 px-4 max-w-6xl mx-auto">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl p-8 mb-6 shadow-lg">
+        <h1 className="text-3xl font-bold mb-2">Welcome to Local News</h1>
+        <p className="text-indigo-100">Stay updated with the latest news and videos in your area.</p>
       </div>
-      <div
-        className="trending-tags"
-        style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}
-      >
+      <div className="flex flex-wrap gap-3 mb-4">
         {hashtags.length === 0 ? (
-          <span style={{ color: "var(--text-color)" }}>
+          <span className="text-gray-600">
             No trending hashtags
           </span>
         ) : (
           hashtags.map(({ tag }) => (
             <span
               key={tag}
-              style={{
-                color: hoveredTag === tag ? "#ff6b35" : "var(--accent-color)",
-                fontWeight: 600,
-                fontSize: 18,
-                cursor: "pointer",
-                transition: "color 0.2s ease",
-              }}
+              className={`font-semibold text-lg cursor-pointer transition-colors duration-200 ${
+                hoveredTag === tag ? "text-orange-500" : "text-orange-600"
+              }`}
               onMouseEnter={() => setHoveredTag(tag)}
               onMouseLeave={() => setHoveredTag(null)}
             >
@@ -393,45 +352,34 @@ export default function Home() {
           ))
         )}
       </div>
-      <div className="home-filters sticky-filters">
+      <div className="sticky top-14 z-40 bg-white border-b border-gray-200 mb-4 -mx-4 px-4 pb-2 flex gap-2 overflow-x-auto">
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            className={filter === f.key ? "active" : ""}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap ${
+              filter === f.key 
+                ? "bg-indigo-600 text-white" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
             onClick={() => setFilter(f.key)}
           >
             {f.label}
           </button>
         ))}
       </div>
-      <div className="news-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="card-skeleton"
-                style={{
-                  height: 220,
-                  borderRadius: 16,
-                  background: "#f5f5f5",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                }}
+                className="h-56 rounded-2xl bg-gray-100 shadow-sm animate-pulse"
               />
             ))
           : Object.entries(grouped).map(
               ([type, items]) =>
                 items.length > 0 && (
                   <React.Fragment key={type}>
-                    <div
-                      className="section-title"
-                      style={{
-                        gridColumn: "1/-1",
-                        fontWeight: 700,
-                        fontSize: 20,
-                        color: "var(--primary-color)",
-                        margin: "18px 0 6px 0",
-                      }}
-                    >
+                    <div className="col-span-full font-bold text-xl text-indigo-600 my-4">
                       {type.charAt(0).toUpperCase() + type.slice(1)}
                     </div>
                     {items.map((item) =>
@@ -480,24 +428,7 @@ export default function Home() {
             )}
       </div>
       <button
-        className="fab-create"
-        style={{
-          position: "fixed",
-          bottom: 90,
-          right: 24,
-          background: "var(--accent-color)",
-          color: "var(--background-color)",
-          border: "none",
-          borderRadius: "50%",
-          width: 60,
-          height: 60,
-          boxShadow: "0 4px 16px rgba(194,65,12,0.13)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 32,
-          zIndex: 200,
-        }}
+        className="fixed bottom-24 right-6 bg-orange-600 text-white border-none rounded-full w-15 h-15 shadow-lg flex items-center justify-center text-3xl z-50 hover:bg-orange-700 transition-colors"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         title="Create"
       >

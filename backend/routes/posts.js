@@ -5,7 +5,7 @@ const Post = require("../models/Post");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const cloudinary = require("../config/cloudinary");
+const { uploadFile } = require("../utils/gridfs");
 
 // Configure multer for memory storage (for Cloudinary)
 const storage = multer.memoryStorage();
@@ -94,7 +94,13 @@ router.get("/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate("author", "username avatar")
-      .populate("comments");
+      .populate({
+        path: "comments",
+        populate: {
+          path: "author",
+          select: "username avatar"
+        }
+      });
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -116,30 +122,20 @@ router.post("/", auth, upload.array("images", 5), async (req, res) => {
   try {
     const { title, content, tags, location, category } = req.body;
 
-    // Upload images to Cloudinary
+    // Upload images to MongoDB GridFS
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) => {
-        return new Promise((resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream(
-              {
-                folder: "posts",
-                public_id: `post_${req.user.id}_${Date.now()}_${Math.random()
-                  .toString(36)
-                  .substr(2, 9)}`,
-                transformation: [
-                  { width: 800, height: 600, crop: "limit", quality: "auto" },
-                  { fetch_format: "auto" },
-                ],
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result.secure_url);
-              }
-            )
-            .end(file.buffer);
+      const uploadPromises = req.files.map(async (file) => {
+        const filename = `post_${req.user.id}_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}_${file.originalname}`;
+        const fileResult = await uploadFile(file.buffer, filename, {
+          contentType: file.mimetype,
+          uploadedBy: req.user.id,
+          originalName: file.originalname,
+          type: "post-image",
         });
+        return `/api/files/${fileResult.id}`;
       });
       imageUrls = await Promise.all(uploadPromises);
     }
@@ -187,14 +183,17 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const { title, content, images, tags, location, category } = req.body;
+    const { title, content, images, tags, location, category, isPublished } = req.body;
 
-    post.title = title || post.title;
-    post.content = content || post.content;
-    post.images = images || post.images;
-    post.tags = tags || post.tags;
-    post.location = location || post.location;
-    post.category = category || post.category;
+    if (title !== undefined) post.title = title;
+    if (content !== undefined) post.content = content;
+    if (images !== undefined) post.images = images;
+    if (tags !== undefined) {
+      post.tags = Array.isArray(tags) ? tags : tags.split(",").map((t) => t.trim()).filter((t) => t);
+    }
+    if (location !== undefined) post.location = location;
+    if (category !== undefined) post.category = category;
+    if (isPublished !== undefined) post.isPublished = isPublished;
 
     await post.save();
 

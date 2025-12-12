@@ -5,27 +5,24 @@ import CommunityPostCard from '../components/CommunityPostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import { get, post } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import './Community.css';
 
 export default function Community() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
-  // Fetch community posts from backend
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
         const response = await get('/api/community');
         
-        // Transform posts for frontend
         const transformedPosts = response.posts?.map(post => ({
           ...post,
-          liked: isAuthenticated ? post.likes?.includes(post.author?._id) : false,
-          saved: false // TODO: Implement saved functionality
+          liked: isAuthenticated ? post.likes?.includes(user?._id) : false,
+          saved: isAuthenticated && user ? post.savedBy?.includes(user._id) : false
         })) || [];
         
         setPosts(transformedPosts);
@@ -48,8 +45,6 @@ export default function Community() {
 
     try {
       const response = await post(`/api/community/${id}/like`, {});
-      
-      // Update local state
       setPosts(posts => posts.map(post => 
         post._id === id 
           ? { ...post, liked: response.liked, likes: response.likesCount }
@@ -61,12 +56,23 @@ export default function Community() {
     }
   };
 
-  const handleSave = (id) => {
+  const handleSave = async (id) => {
     if (!isAuthenticated) {
       alert('Please login to save posts');
       return;
     }
-    setPosts(posts => posts.map(p => p._id === id ? { ...p, saved: !p.saved } : p));
+    try {
+      const endpoint = `/api/community/${id}/save`;
+      const response = await post(endpoint, {});
+      setPosts(posts => posts.map(post => 
+        post._id === id 
+          ? { ...post, saved: response.saved, savedCount: response.savedCount }
+          : post
+      ));
+    } catch (error) {
+      console.error('Error saving post:', error);
+      alert('Failed to save post');
+    }
   };
 
   const handleShare = (id) => {
@@ -98,12 +104,11 @@ export default function Community() {
 
     try {
       const newPost = await post('/api/community', {
-        title: content.substring(0, 100), // Use first 100 chars as title
+        title: content.substring(0, 100),
         content: content,
         category: 'general'
       });
 
-      // Add the new post to the beginning of the list
       setPosts(prevPosts => [newPost, ...prevPosts]);
       setCreateOpen(false);
     } catch (error) {
@@ -121,24 +126,53 @@ export default function Community() {
   };
 
   return (
-    <div className="community-page">
-      <div className="community-banner">
-        <PeopleIcon fontSize="large" style={{ color: '#B71C1C', marginRight: 8 }} />
-        <h1>Community</h1>
-        <p>Connect, share, and grow with your local community!</p>
+    <div className="pt-14 pb-20 px-4 max-w-4xl mx-auto">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-b-3xl p-8 mb-6 shadow-xl">
+        <div className="flex items-center gap-3 mb-2">
+          <PeopleIcon className="text-4xl" />
+          <h1 className="text-3xl font-bold">Community</h1>
+        </div>
+        <p className="text-blue-100">Connect, share, and grow with your local community!</p>
       </div>
-      <div className="community-feed-header">
-        <button className="community-create-btn" onClick={handleCreateClick}>
-          <AddCircleIcon style={{ marginRight: 6 }} /> Create Post
+      
+      <div className="mb-6 flex justify-end">
+        <button
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-colors duration-200"
+          onClick={handleCreateClick}
+        >
+          <AddCircleIcon />
+          Create Post
         </button>
       </div>
-      <div className="community-feed">
+      
+      <div className="space-y-6">
         {loading ? (
-          <div className="loading-message">Loading community posts...</div>
+          <div className="flex justify-center items-center min-h-[40vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading community posts...</p>
+            </div>
+          </div>
         ) : error ? (
-          <div className="error-message">Error: {error}</div>
+          <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-700 text-center">
+            <p className="font-semibold">Error loading posts</p>
+            <p className="text-sm mt-2">{error}</p>
+          </div>
         ) : posts.length === 0 ? (
-          <div className="empty-message">No community posts yet. Be the first to post!</div>
+          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+            <PeopleIcon className="text-6xl text-gray-300 mb-4" />
+            <p className="text-xl text-gray-600 mb-2">No community posts yet</p>
+            <p className="text-gray-500 mb-6">Be the first to share something with the community!</p>
+            {isAuthenticated && (
+              <button
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-colors duration-200"
+                onClick={handleCreateClick}
+              >
+                <AddCircleIcon />
+                Create First Post
+              </button>
+            )}
+          </div>
         ) : (
           posts.map(post => (
             <CommunityPostCard
@@ -152,7 +186,12 @@ export default function Community() {
           ))
         )}
       </div>
-      <CreatePostModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreatePost} />
+      
+      <CreatePostModal 
+        open={createOpen} 
+        onClose={() => setCreateOpen(false)} 
+        onCreate={handleCreatePost} 
+      />
     </div>
   );
-} 
+}

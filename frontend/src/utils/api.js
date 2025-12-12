@@ -36,9 +36,20 @@ export async function get(url) {
   });
   const parsed = await parseJsonSafe(res);
   if (!res.ok) {
-    // include status for clearer errors
-    const message = parsed || `${res.status} ${res.statusText}`;
-    throw new Error(message);
+    // Extract error message properly
+    let errorMessage = `${res.status} ${res.statusText}`;
+    if (parsed) {
+      if (typeof parsed === 'string') {
+        errorMessage = parsed;
+      } else if (parsed.message) {
+        errorMessage = parsed.message;
+      } else if (parsed.error) {
+        errorMessage = parsed.error;
+      } else {
+        errorMessage = JSON.stringify(parsed);
+      }
+    }
+    throw new Error(errorMessage);
   }
   return parsed;
 }
@@ -54,8 +65,20 @@ export async function post(url, data) {
   });
   const parsed = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = parsed || `${res.status} ${res.statusText}`;
-    throw new Error(message);
+    // Extract error message properly
+    let errorMessage = `${res.status} ${res.statusText}`;
+    if (parsed) {
+      if (typeof parsed === 'string') {
+        errorMessage = parsed;
+      } else if (parsed.message) {
+        errorMessage = parsed.message;
+      } else if (parsed.error) {
+        errorMessage = parsed.error;
+      } else {
+        errorMessage = JSON.stringify(parsed);
+      }
+    }
+    throw new Error(errorMessage);
   }
   return parsed;
 }
@@ -71,8 +94,20 @@ export async function put(url, data) {
   });
   const parsed = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = parsed || `${res.status} ${res.statusText}`;
-    throw new Error(message);
+    // Extract error message properly
+    let errorMessage = `${res.status} ${res.statusText}`;
+    if (parsed) {
+      if (typeof parsed === 'string') {
+        errorMessage = parsed;
+      } else if (parsed.message) {
+        errorMessage = parsed.message;
+      } else if (parsed.error) {
+        errorMessage = parsed.error;
+      } else {
+        errorMessage = JSON.stringify(parsed);
+      }
+    }
+    throw new Error(errorMessage);
   }
   return parsed;
 }
@@ -84,8 +119,20 @@ export async function del(url) {
   });
   const parsed = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = parsed || `${res.status} ${res.statusText}`;
-    throw new Error(message);
+    // Extract error message properly
+    let errorMessage = `${res.status} ${res.statusText}`;
+    if (parsed) {
+      if (typeof parsed === 'string') {
+        errorMessage = parsed;
+      } else if (parsed.message) {
+        errorMessage = parsed.message;
+      } else if (parsed.error) {
+        errorMessage = parsed.error;
+      } else {
+        errorMessage = JSON.stringify(parsed);
+      }
+    }
+    throw new Error(errorMessage);
   }
   return parsed;
 }

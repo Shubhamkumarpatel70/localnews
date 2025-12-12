@@ -74,7 +74,13 @@ router.get('/:id', async (req, res) => {
   try {
     const post = await CommunityPost.findById(req.params.id)
       .populate('author', 'username avatar')
-      .populate('comments');
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'author',
+          select: 'username avatar'
+        }
+      });
     
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
@@ -199,6 +205,34 @@ router.post('/:id/like', auth, async (req, res) => {
     res.json({ liked: !isLiked, likesCount: post.likes.length });
   } catch (error) {
     console.error('Error liking community post:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Save/Unsave community post
+router.post('/:id/save', auth, async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const userId = req.user.id;
+    if (!post.savedBy) post.savedBy = [];
+    
+    let saved;
+    if (!post.savedBy.includes(userId)) {
+      post.savedBy.push(userId);
+      saved = true;
+    } else {
+      post.savedBy = post.savedBy.filter(id => id.toString() !== userId);
+      saved = false;
+    }
+
+    await post.save();
+    res.json({ saved, savedCount: post.savedBy.length });
+  } catch (error) {
+    console.error('Error saving community post:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

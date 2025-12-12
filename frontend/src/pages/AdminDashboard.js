@@ -15,7 +15,12 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import "./AdminDashboard.css";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import PeopleIcon from "@mui/icons-material/People";
+import PostAddIcon from "@mui/icons-material/PostAdd";
+import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
+import ForumIcon from "@mui/icons-material/Forum";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -59,7 +64,7 @@ const AdminDashboard = () => {
         posts: postRes.count || 0,
         videos: videoRes.count || 0,
         community: commRes.count || 0,
-        live: 0, // TODO: Add live stats
+        live: 0,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -106,7 +111,6 @@ const AdminDashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      // Mock data for now - replace with actual API calls
       setAnalytics({
         userGrowth: [
           { month: "Jan", users: 120 },
@@ -171,41 +175,50 @@ const AdminDashboard = () => {
   };
 
   const renderContent = () => {
-    if (loading) return <div className="loading">Loading...</div>;
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      );
+    }
 
     switch (activeSection) {
       case "dashboard":
         return (
-          <div className="dashboard-content">
-            <h2>Dashboard Overview</h2>
-            <div className="stats-grid">
-              <div className="stat-card">
-                <h3>{stats.users}</h3>
-                <p>Total Users</p>
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="text-4xl font-bold mb-2">{stats.users}</div>
+                <div className="text-blue-100">Total Users</div>
               </div>
-              <div className="stat-card">
-                <h3>{stats.posts}</h3>
-                <p>Total Posts</p>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="text-4xl font-bold mb-2">{stats.posts}</div>
+                <div className="text-green-100">Total Posts</div>
               </div>
-              <div className="stat-card">
-                <h3>{stats.videos}</h3>
-                <p>Total Videos</p>
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="text-4xl font-bold mb-2">{stats.videos}</div>
+                <div className="text-purple-100">Total Videos</div>
               </div>
-              <div className="stat-card">
-                <h3>{stats.community}</h3>
-                <p>Community Posts</p>
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="text-4xl font-bold mb-2">{stats.community}</div>
+                <div className="text-orange-100">Community Posts</div>
               </div>
-              <div className="stat-card">
-                <h3>{stats.live}</h3>
-                <p>Live Streams</p>
+              <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl p-6 shadow-lg">
+                <div className="text-4xl font-bold mb-2">{stats.live}</div>
+                <div className="text-red-100">Live Streams</div>
               </div>
             </div>
 
-            <div className="charts-section">
-              <h3>Analytics</h3>
-              <div className="charts-grid">
-                <div className="chart-container">
-                  <h4>User Growth</h4>
+            <div className="space-y-6">
+              <h3 className="text-2xl font-bold text-gray-900">Analytics</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h4>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={analytics.userGrowth}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -216,15 +229,15 @@ const AdminDashboard = () => {
                       <Line
                         type="monotone"
                         dataKey="users"
-                        stroke="#8884d8"
+                        stroke="#667eea"
                         strokeWidth={2}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="chart-container">
-                  <h4>Content Engagement</h4>
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Content Engagement</h4>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
@@ -242,7 +255,7 @@ const AdminDashboard = () => {
                         {analytics.engagement.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={["#0088FE", "#00C49F", "#FFBB28"][index % 3]}
+                            fill={["#667eea", "#10b981", "#f59e0b"][index % 3]}
                           />
                         ))}
                       </Pie>
@@ -251,8 +264,8 @@ const AdminDashboard = () => {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="chart-container">
-                  <h4>Top Content Views</h4>
+                <div className="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Top Content Views</h4>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={analytics.topContent}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -260,7 +273,7 @@ const AdminDashboard = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="views" fill="#82ca9d" />
+                      <Bar dataKey="views" fill="#10b981" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -270,26 +283,28 @@ const AdminDashboard = () => {
         );
       case "users":
         return (
-          <div className="users-content">
-            <h2>Manage Users</h2>
-            <div className="users-list">
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-gray-900">Manage Users</h2>
+            <div className="space-y-4">
               {users.map((user) => (
-                <div key={user._id} className="user-item">
-                  <div className="user-info">
-                    <img src={user.avatar} alt={user.username} />
+                <div key={user._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={user.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"} 
+                      alt={user.username}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
                     <div>
-                      <h4>{user.username}</h4>
-                      <p>{user.email}</p>
-                      <p>Role: {user.role || "User"}</p>
+                      <h4 className="text-lg font-semibold text-gray-900">{user.username}</h4>
+                      <p className="text-gray-600">{user.email}</p>
+                      <p className="text-sm text-gray-500">Role: {user.role || "User"}</p>
                     </div>
                   </div>
-                  <div className="user-actions">
+                  <div className="flex items-center gap-3">
                     <select
                       value={user.role || "user"}
-                      onChange={(e) =>
-                        handleRoleChange(user._id, e.target.value)
-                      }
-                      className="role-select"
+                      onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                      className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                     >
                       <option value="user">User</option>
                       <option value="moderator">Moderator</option>
@@ -297,7 +312,7 @@ const AdminDashboard = () => {
                     </select>
                     <button
                       onClick={() => handleDeleteUser(user._id)}
-                      className="delete-btn"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
                     >
                       Delete
                     </button>
@@ -309,16 +324,18 @@ const AdminDashboard = () => {
         );
       case "posts":
         return (
-          <div className="posts-content">
-            <h2>Manage Posts</h2>
-            <div className="posts-list">
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-gray-900">Manage Posts</h2>
+            <div className="space-y-4">
               {posts.map((post) => (
-                <div key={post._id} className="post-item">
-                  <h4>{post.title}</h4>
-                  <p>By {post.author?.username}</p>
+                <div key={post._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{post.title}</h4>
+                    <p className="text-gray-600">By {post.author?.username}</p>
+                  </div>
                   <button
                     onClick={() => handleDeletePost(post._id, "posts")}
-                    className="delete-btn"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
                   >
                     Delete
                   </button>
@@ -329,16 +346,18 @@ const AdminDashboard = () => {
         );
       case "videos":
         return (
-          <div className="videos-content">
-            <h2>Manage Videos</h2>
-            <div className="videos-list">
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-gray-900">Manage Videos</h2>
+            <div className="space-y-4">
               {videos.map((video) => (
-                <div key={video._id} className="video-item">
-                  <h4>{video.title}</h4>
-                  <p>By {video.uploadedBy?.username}</p>
+                <div key={video._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{video.title}</h4>
+                    <p className="text-gray-600">By {video.uploadedBy?.username}</p>
+                  </div>
                   <button
                     onClick={() => handleDeletePost(video._id, "videos")}
-                    className="delete-btn"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
                   >
                     Delete
                   </button>
@@ -349,16 +368,18 @@ const AdminDashboard = () => {
         );
       case "community":
         return (
-          <div className="community-content">
-            <h2>Manage Community</h2>
-            <div className="community-list">
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-gray-900">Manage Community</h2>
+            <div className="space-y-4">
               {community.map((post) => (
-                <div key={post._id} className="community-item">
-                  <p>{post.content}</p>
-                  <p>By {post.author?.username}</p>
+                <div key={post._id} className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-900">{post.content}</p>
+                    <p className="text-gray-600 mt-1">By {post.author?.username}</p>
+                  </div>
                   <button
                     onClick={() => handleDeletePost(post._id, "community")}
-                    className="delete-btn"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
                   >
                     Delete
                   </button>
@@ -368,48 +389,47 @@ const AdminDashboard = () => {
           </div>
         );
       default:
-        return <div>Select a section</div>;
+        return <div className="text-center py-12 text-gray-500">Select a section</div>;
     }
   };
 
+  const navItems = [
+    { key: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
+    { key: "users", label: "Users", icon: <PeopleIcon /> },
+    { key: "posts", label: "Posts", icon: <PostAddIcon /> },
+    { key: "videos", label: "Videos", icon: <VideoLibraryIcon /> },
+    { key: "community", label: "Community", icon: <ForumIcon /> },
+  ];
+
   return (
-    <div className="admin-dashboard">
-      <div className="sidebar">
-        <h1>Admin Panel</h1>
-        <nav>
-          <button
-            className={activeSection === "dashboard" ? "active" : ""}
-            onClick={() => setActiveSection("dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            className={activeSection === "users" ? "active" : ""}
-            onClick={() => setActiveSection("users")}
-          >
-            Users
-          </button>
-          <button
-            className={activeSection === "posts" ? "active" : ""}
-            onClick={() => setActiveSection("posts")}
-          >
-            Posts
-          </button>
-          <button
-            className={activeSection === "videos" ? "active" : ""}
-            onClick={() => setActiveSection("videos")}
-          >
-            Videos
-          </button>
-          <button
-            className={activeSection === "community" ? "active" : ""}
-            onClick={() => setActiveSection("community")}
-          >
-            Community
-          </button>
+    <div className="pt-14 pb-20 min-h-screen bg-gray-50 flex">
+      <div className="w-64 bg-white shadow-lg min-h-screen">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <AdminPanelSettingsIcon className="text-3xl text-indigo-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+          </div>
+        </div>
+        <nav className="p-4 space-y-2">
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                activeSection === item.key
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+              onClick={() => setActiveSection(item.key)}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
         </nav>
       </div>
-      <div className="main-content">{renderContent()}</div>
+      <div className="flex-1 p-8 overflow-auto">
+        {renderContent()}
+      </div>
     </div>
   );
 };

@@ -50,6 +50,10 @@ mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log("MongoDB connected");
+    // Initialize GridFS after connection
+    const { initGridFS } = require("./utils/gridfs");
+    initGridFS();
+    console.log("GridFS initialized");
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

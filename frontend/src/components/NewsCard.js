@@ -8,7 +8,6 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import VideoCommentSection from "./VideoCommentSection";
 import PopupModal from "./PopupModal";
 import LoadingSpinner from "./LoadingSpinner";
-import "./NewsCard.css";
 import { useNavigate } from "react-router-dom";
 
 export default function NewsCard({
@@ -55,29 +54,35 @@ export default function NewsCard({
   }
 
   return (
-    <div className="news-card">
+    <div className="bg-white rounded-2xl shadow-md overflow-hidden mb-6">
       {news.image && (
-        <img src={news.image} alt={news.title} className="news-image" />
+        <img 
+          src={news.image} 
+          alt={news.title} 
+          className="w-full h-48 object-cover"
+        />
       )}
-      <div className="news-content">
-        <h2>{news.title}</h2>
-        <p className="news-snippet">
+      <div className="p-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">{news.title}</h2>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
           {news.content.slice(0, 100)}
           {news.content.length > 100 ? "..." : ""}
         </p>
-        <div className="news-meta">
-          <span className="news-author">
+        <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+          <span className="font-medium">
             By {news.author?.username || "Unknown"}
           </span>
-          <span className="news-time">
+          <span>
             {new Date(news.createdAt).toLocaleString()}
           </span>
         </div>
-        <div className="news-actions">
+        <div className="flex gap-4 items-center mb-4">
           <button
             title="Like"
             onClick={onLike}
-            style={{ color: liked ? "#B71C1C" : undefined, fontWeight: 600 }}
+            className={`flex items-center gap-1 font-semibold transition-colors ${
+              liked ? "text-red-600" : "text-gray-600 hover:text-red-600"
+            }`}
           >
             {liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}{" "}
             {typeof likesCount === "number"
@@ -89,15 +94,25 @@ export default function NewsCard({
           <button
             title="Save"
             onClick={onSave}
-            style={{ color: saved ? "#2196f3" : undefined, fontWeight: 600 }}
+            className={`flex items-center gap-1 font-semibold transition-colors ${
+              saved ? "text-blue-600" : "text-gray-600 hover:text-blue-600"
+            }`}
           >
             {saved ? <BookmarkIcon /> : <BookmarkBorderIcon />}{" "}
             {savedCount > 0 ? savedCount : ""}
           </button>
-          <button title="Share" onClick={handleShare}>
+          <button 
+            title="Share" 
+            onClick={handleShare}
+            className="text-gray-600 hover:text-gray-900 transition-colors"
+          >
             <ShareIcon />
           </button>
-          <button title="Comment" onClick={handleOpenComments}>
+          <button 
+            title="Comment" 
+            onClick={handleOpenComments}
+            className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1"
+          >
             <ChatBubbleOutlineIcon />{" "}
             {Array.isArray(news.comments)
               ? news.comments.length
@@ -106,59 +121,37 @@ export default function NewsCard({
               : 0}
           </button>
         </div>
-      </div>
-      <button
-        style={{
-          marginTop: 10,
-          background: "#166534",
-          color: "#FEF7ED",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 18px",
-          fontWeight: 600,
-          cursor: "pointer",
-          transition: "background 0.2s",
-        }}
-        onMouseOver={(e) => (e.target.style.background = "#C2410C")}
-        onMouseOut={(e) => (e.target.style.background = "#166534")}
-        onClick={() => navigate(`/post/${news._id}`)}
-      >
-        View More
-      </button>
-      {onDelete && (
         <button
-          title="Delete"
-          style={{
-            marginTop: 10,
-            marginLeft: 8,
-            background: "#B91C1C",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 14px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-          onClick={() => {
-            setModalMessage("Are you sure you want to delete this news item?");
-            setShowConfirmButton(true);
-            setConfirmAction(() => async () => {
-              setIsDeleting(true);
-              try {
-                await onDelete(news._id);
-              } catch (e) {
-                console.error("Delete handler error", e);
-                setModalMessage("Failed to delete item");
-                setShowConfirmButton(false);
-              } finally {
-                setIsDeleting(false);
-              }
-            });
-          }}
+          className="w-full mt-2 bg-green-700 hover:bg-orange-600 text-white border-none rounded-lg py-2 px-4 font-semibold cursor-pointer transition-colors duration-200"
+          onClick={() => navigate(`/post/${news._id}`)}
         >
-          {isDeleting ? "Deleting..." : "Delete"}
+          View More
         </button>
-      )}
+        {onDelete && (
+          <button
+            title="Delete"
+            className="mt-2 ml-2 bg-red-700 text-white border-none rounded-lg py-2 px-3 font-semibold cursor-pointer hover:bg-red-800 transition-colors"
+            onClick={() => {
+              setModalMessage("Are you sure you want to delete this news item?");
+              setShowConfirmButton(true);
+              setConfirmAction(() => async () => {
+                setIsDeleting(true);
+                try {
+                  await onDelete(news._id);
+                } catch (e) {
+                  console.error("Delete handler error", e);
+                  setModalMessage("Failed to delete item");
+                  setShowConfirmButton(false);
+                } finally {
+                  setIsDeleting(false);
+                }
+              });
+            }}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
+        )}
+      </div>
       <VideoCommentSection
         open={commentOpen}
         onClose={handleCloseComments}

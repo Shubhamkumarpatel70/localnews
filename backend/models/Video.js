@@ -23,6 +23,7 @@ const videoSchema = new mongoose.Schema({
   isPublished: { type: Boolean, default: true },
   isLive: { type: Boolean, default: false },
   viewers: { type: Number, default: 0 },
+  savedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   uploadDate: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

@@ -16,8 +16,6 @@ import BottomNav from "./components/BottomNav";
 import Navbar from "./components/Navbar";
 import CreateModal from "./components/CreateModal";
 import AccountMenu from "./components/AccountMenu";
-import "./styles/global.css";
-import "./pages/Account.css";
 import Community from "./pages/Community";
 import CommunityPostCard from "./components/CommunityPostCard";
 import CreatePostModal from "./components/CreatePostModal";
@@ -31,7 +29,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserProfile from "./pages/UserProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { get, post as apiPost } from "./utils/api";
+import { get, post as apiPost, post, put, del } from "./utils/api";
 
 function ProfileSection() {
   const { user, isAuthenticated } = useAuth();
@@ -357,103 +355,648 @@ function ProfileSection() {
 }
 function MyNewsSection() {
   const { user, isAuthenticated } = useAuth();
+  const [posts, setPosts] = React.useState([]);
   const [videos, setVideos] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [editVideo, setEditVideo] = React.useState(null);
+  const [editPost, setEditPost] = React.useState(null);
+  const [editForm, setEditForm] = React.useState({
+    title: "",
+    description: "",
+    location: "",
+    tags: "",
+    isPublished: true,
+  });
+
   React.useEffect(() => {
-    if (!isAuthenticated || !user?.username) return;
-    get(`/api/posts?author=${encodeURIComponent(user.username)}`)
-      .then((res) => setVideos(res.posts || []))
-      .catch(() => setVideos([]));
+    if (!isAuthenticated || !user?._id) return;
+    setLoading(true);
+    Promise.all([
+      get(`/api/posts?author=${encodeURIComponent(user.username)}`).catch(() => ({ posts: [] })),
+      get(`/api/videos?uploadedBy=${user._id}`).catch(() => ({ videos: [] })),
+    ]).then(([postsRes, videosRes]) => {
+      setPosts(postsRes.posts || []);
+      setVideos(videosRes.videos || []);
+      setLoading(false);
+    });
   }, [isAuthenticated, user]);
+
+  const handleEditVideo = (video) => {
+    setEditVideo(video);
+    setEditForm({
+      title: video.title || "",
+      description: video.description || "",
+      location: video.location || "",
+      tags: Array.isArray(video.tags) ? video.tags.join(", ") : "",
+      isPublished: video.isPublished !== undefined ? video.isPublished : true,
+    });
+  };
+
+  const handleSaveVideo = async () => {
+    if (!editVideo) return;
+    try {
+      const tagsArray = editForm.tags
+        ? editForm.tags.split(",").map((t) => t.trim()).filter((t) => t)
+        : [];
+      
+      const response = await put(`/api/videos/${editVideo._id}`, {
+        title: editForm.title,
+        description: editForm.description,
+        location: editForm.location,
+        tags: tagsArray,
+        isPublished: editForm.isPublished,
+      });
+
+      setVideos((videos) =>
+        videos.map((v) => (v._id === editVideo._id ? response : v))
+      );
+      setEditVideo(null);
+      alert("Video updated successfully!");
+    } catch (error) {
+      console.error("Error updating video:", error);
+      alert("Failed to update video");
+    }
+  };
+
+  const handleDeleteVideo = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this video?")) return;
+    try {
+      await del(`/api/videos/${id}`);
+      setVideos((videos) => videos.filter((v) => v._id !== id));
+      alert("Video deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      alert("Failed to delete video");
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditPost(post);
+    setEditForm({
+      title: post.title || "",
+      description: post.content || "",
+      location: post.location || "",
+      tags: Array.isArray(post.tags) ? post.tags.join(", ") : "",
+      isPublished: post.isPublished !== undefined ? post.isPublished : true,
+    });
+  };
+
+  const handleSavePost = async () => {
+    if (!editPost) return;
+    try {
+      const tagsArray = editForm.tags
+        ? editForm.tags.split(",").map((t) => t.trim()).filter((t) => t)
+        : [];
+      
+      const response = await put(`/api/posts/${editPost._id}`, {
+        title: editForm.title,
+        content: editForm.description,
+        location: editForm.location,
+        tags: tagsArray,
+        isPublished: editForm.isPublished,
+      });
+
+      setPosts((posts) =>
+        posts.map((p) => (p._id === editPost._id ? response : p))
+      );
+      setEditPost(null);
+      alert("Post updated successfully!");
+    } catch (error) {
+      console.error("Error updating post:", error);
+      alert("Failed to update post");
+    }
+  };
+
+  const handleDeletePost = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await del(`/api/posts/${id}`);
+      setPosts((posts) => posts.filter((p) => p._id !== id));
+      alert("Post deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("Failed to delete post");
+    }
+  };
+
+  const allContent = [
+    ...posts.map((p) => ({ ...p, contentType: "post" })),
+    ...videos.map((v) => ({ ...v, contentType: "video" })),
+  ].sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.uploadDate);
+    const dateB = new Date(b.createdAt || b.uploadDate);
+    return dateB - dateA;
+  });
+
   return (
     <div
       className="account-section"
-      style={{ maxWidth: 600, margin: "0 auto", padding: "2rem 1rem" }}
+      style={{ 
+        maxWidth: 1200, 
+        margin: "0 auto", 
+        padding: "1.5rem",
+        minHeight: "calc(100vh - 140px)"
+      }}
     >
-      <h2 style={{ marginBottom: 18 }}>My News</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 20,
-        }}
-      >
-        {videos.map((video) => (
-          <div
-            key={video._id}
-            style={{
-              background: "#fff",
-              borderRadius: 16,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {video.images && video.images.length > 0 && (
-              <img
-                src={video.images[0]}
-                alt={video.title}
-                style={{ width: "100%", height: 120, objectFit: "cover" }}
-              />
-            )}
+      <h2 style={{ marginBottom: "1.5rem", fontSize: "1.75rem", fontWeight: 700 }}>
+        My Content
+      </h2>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "3rem" }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p style={{ color: "#888" }}>Loading your content...</p>
+        </div>
+      ) : allContent.length === 0 ? (
+        <div style={{ 
+          textAlign: "center", 
+          padding: "3rem", 
+          color: "#888",
+          background: "#f9f9f9",
+          borderRadius: "12px"
+        }}>
+          <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>No content uploaded yet.</p>
+          <p style={{ fontSize: "0.9rem" }}>Start creating posts and videos!</p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "1.5rem",
+          }}
+        >
+          {allContent.map((item) => (
             <div
+              key={item._id}
               style={{
-                padding: "12px 14px 10px 14px",
-                flex: 1,
+                background: "#fff",
+                borderRadius: "16px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+                overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
+                position: "relative",
+                transition: "transform 0.2s, box-shadow 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.12)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.07)";
               }}
             >
-              <div
-                style={{
+              {/* Thumbnail/Image */}
+              <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#000" }}>
+                {item.images && item.images.length > 0 && (
+                  <img
+                    src={item.images[0]}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+                {item.thumbnail && (
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+                {item.contentType === "video" && !item.thumbnail && (
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    height: "100%",
+                    color: "#fff",
+                    fontSize: "3rem"
+                  }}>
+                    ▶
+                  </div>
+                )}
+                {/* Type badge */}
+                <div style={{
+                  position: "absolute",
+                  top: "8px",
+                  left: "8px",
+                  background: item.contentType === "video" ? "#ff0000" : "#2196f3",
+                  color: "#fff",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  fontSize: "0.75rem",
                   fontWeight: 600,
-                  fontSize: 16,
-                  marginBottom: 6,
-                  color: "#222",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {video.title}
-              </div>
-              <div style={{ fontSize: 13, color: "#888", marginBottom: 8 }}>
-                {video.createdAt ? video.createdAt.slice(0, 10) : ""}
-              </div>
-              <div
-                style={{
+                  textTransform: "uppercase"
+                }}>
+                  {item.contentType}
+                </div>
+                {/* Action buttons */}
+                <div style={{
+                  position: "absolute",
+                  top: "8px",
+                  right: "8px",
                   display: "flex",
-                  gap: 16,
-                  fontSize: 13,
-                  color: "#888",
-                }}
-              >
-                <span role="img" aria-label="views">
-                  👁️ {video.views}
-                </span>
-                <span
-                  role="img"
-                  aria-label="likes"
-                  style={{ color: "#d90429" }}
+                  gap: "0.5rem"
+                }}>
+                  <button
+                    onClick={() => item.contentType === "video" ? handleEditVideo(item) : handleEditPost(item)}
+                    style={{
+                      background: "rgba(33, 150, 243, 0.9)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      fontSize: "18px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+                    }}
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => item.contentType === "video" ? handleDeleteVideo(item._id) : handleDeletePost(item._id)}
+                    style={{
+                      background: "rgba(211, 47, 47, 0.9)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "36px",
+                      height: "36px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      fontSize: "18px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+                    }}
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                    marginBottom: "0.5rem",
+                    color: "#222",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    lineHeight: "1.4",
+                    minHeight: "2.8rem"
+                  }}
+                  title={item.title}
                 >
-                  49{" "}
-                  {typeof video.likes === "number"
-                    ? video.likes
-                    : Array.isArray(video.likes)
-                    ? video.likes.length
-                    : 0}
-                </span>
+                  {item.title}
+                </div>
+                <div style={{ 
+                  fontSize: "0.875rem", 
+                  color: "#666",
+                  marginBottom: "0.75rem"
+                }}>
+                  {new Date(item.createdAt || item.uploadDate).toLocaleDateString()}
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  gap: "1rem", 
+                  fontSize: "0.875rem",
+                  color: "#888"
+                }}>
+                  <span>👁️ {item.views || 0}</span>
+                  <span style={{ color: "#d90429" }}>
+                    ❤️ {typeof item.likes === "number" ? item.likes : (Array.isArray(item.likes) ? item.likes.length : 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Video Modal */}
+      {editVideo && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem"
+          }}
+          onClick={() => setEditVideo(null)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginBottom: "1.5rem", fontSize: "1.5rem", fontWeight: 700 }}>
+              Edit Video
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="Video title"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    minHeight: "100px",
+                    resize: "vertical"
+                  }}
+                  placeholder="Video description"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="Location"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editForm.tags}
+                  onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="tag1, tag2, tag3"
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input
+                  type="checkbox"
+                  id="isPublished"
+                  checked={editForm.isPublished}
+                  onChange={(e) => setEditForm({ ...editForm, isPublished: e.target.checked })}
+                />
+                <label htmlFor="isPublished" style={{ fontWeight: 600 }}>
+                  Published
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                <button
+                  onClick={handleSaveVideo}
+                  disabled={!editForm.title.trim()}
+                  style={{
+                    flex: 1,
+                    padding: "0.75rem",
+                    background: "#2196f3",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    cursor: editForm.title.trim() ? "pointer" : "not-allowed",
+                    opacity: editForm.title.trim() ? 1 : 0.6
+                  }}
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setEditVideo(null)}
+                  style={{
+                    flex: 1,
+                    padding: "0.75rem",
+                    background: "#f0f0f0",
+                    color: "#333",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
-        ))}
-        {videos.length === 0 && (
-          <div style={{ color: "#888", textAlign: "center", marginTop: 40 }}>
-            No news uploaded yet.
+        </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {editPost && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem"
+          }}
+          onClick={() => setEditPost(null)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginBottom: "1.5rem", fontSize: "1.5rem", fontWeight: 700 }}>
+              Edit Post
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="Post title"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Content *
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    minHeight: "150px",
+                    resize: "vertical"
+                  }}
+                  placeholder="Post content"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="Location"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editForm.tags}
+                  onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "1rem"
+                  }}
+                  placeholder="tag1, tag2, tag3"
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input
+                  type="checkbox"
+                  id="isPublishedPost"
+                  checked={editForm.isPublished}
+                  onChange={(e) => setEditForm({ ...editForm, isPublished: e.target.checked })}
+                />
+                <label htmlFor="isPublishedPost" style={{ fontWeight: 600 }}>
+                  Published
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                <button
+                  onClick={handleSavePost}
+                  disabled={!editForm.title.trim() || !editForm.description.trim()}
+                  style={{
+                    flex: 1,
+                    padding: "0.75rem",
+                    background: "#2196f3",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    cursor: (editForm.title.trim() && editForm.description.trim()) ? "pointer" : "not-allowed",
+                    opacity: (editForm.title.trim() && editForm.description.trim()) ? 1 : 0.6
+                  }}
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setEditPost(null)}
+                  style={{
+                    flex: 1,
+                    padding: "0.75rem",
+                    background: "#f0f0f0",
+                    color: "#333",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -626,7 +1169,9 @@ function SavedSection() {
   const [savedPosts, setSavedPosts] = React.useState([]);
   const [savedNews, setSavedNews] = React.useState([]);
   const [savedVideos, setSavedVideos] = React.useState([]);
+  const [savedCommunity, setSavedCommunity] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [filter, setFilter] = React.useState("all");
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
@@ -635,10 +1180,12 @@ function SavedSection() {
       get("/api/posts/saved").catch(() => []),
       get("/api/news/saved").catch(() => []),
       get("/api/videos/saved").catch(() => []),
-    ]).then(([posts, news, videos]) => {
+      get("/api/community/saved").catch(() => []),
+    ]).then(([posts, news, videos, community]) => {
       setSavedPosts(posts || []);
       setSavedNews(news || []);
       setSavedVideos(videos || []);
+      setSavedCommunity(community || []);
       setLoading(false);
     });
   }, [isAuthenticated]);
@@ -652,35 +1199,88 @@ function SavedSection() {
   const handleRemoveVideo = (id) => {
     setSavedVideos((items) => items.filter((item) => item._id !== id));
   };
+  const handleRemoveCommunity = (id) => {
+    setSavedCommunity((items) => items.filter((item) => item._id !== id));
+  };
 
   const allSaved = [
     ...savedPosts.map((item) => ({ ...item, type: "post" })),
     ...savedNews.map((item) => ({ ...item, type: "news" })),
     ...savedVideos.map((item) => ({ ...item, type: "video" })),
-  ];
+    ...savedCommunity.map((item) => ({ ...item, type: "community" })),
+  ].sort((a, b) => new Date(b.createdAt || b.uploadDate) - new Date(a.createdAt || a.uploadDate));
+
+  const filteredSaved = filter === "all" 
+    ? allSaved 
+    : allSaved.filter(item => item.type === filter);
 
   return (
     <div
       className="account-section"
-      style={{ maxWidth: 600, margin: "0 auto", padding: "2rem 1rem" }}
+      style={{ 
+        maxWidth: 1200, 
+        margin: "0 auto", 
+        padding: "1rem",
+        minHeight: "calc(100vh - 140px)"
+      }}
     >
-      <h2 style={{ marginBottom: 18 }}>My Saved</h2>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h2 style={{ marginBottom: "1rem", fontSize: "1.75rem", fontWeight: 700 }}>My Saved Content</h2>
+        
+        {/* Filter buttons */}
+        <div style={{ 
+          display: "flex", 
+          gap: "0.5rem", 
+          flexWrap: "wrap",
+          marginBottom: "1rem"
+        }}>
+          {["all", "post", "video", "news", "community"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              style={{
+                padding: "0.5rem 1rem",
+                borderRadius: "20px",
+                border: "none",
+                background: filter === type ? "#B71C1C" : "#f0f0f0",
+                color: filter === type ? "#fff" : "#333",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                transition: "all 0.2s",
+              }}
+            >
+              {type === "all" ? "All" : type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
-        <div>Loading...</div>
+        <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          Loading saved content...
+        </div>
+      ) : filteredSaved.length === 0 ? (
+        <div style={{ 
+          textAlign: "center", 
+          padding: "3rem", 
+          color: "#888",
+          background: "#f9f9f9",
+          borderRadius: "12px"
+        }}>
+          <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>No saved {filter === "all" ? "content" : filter} yet.</p>
+          <p style={{ fontSize: "0.9rem" }}>Start saving content you like!</p>
+        </div>
       ) : (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 20,
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "1.5rem",
           }}
         >
-          {allSaved.length === 0 && (
-            <div style={{ color: "#888", textAlign: "center", marginTop: 40 }}>
-              No saved content yet.
-            </div>
-          )}
-          {allSaved.map((item) => (
+          {filteredSaved.map((item) => (
             <div
               key={item._id}
               style={{
@@ -693,30 +1293,61 @@ function SavedSection() {
                 position: "relative",
               }}
             >
-              {item.images && item.images.length > 0 && (
-                <img
-                  src={item.images[0]}
-                  alt={item.title}
-                  style={{ width: "100%", height: 120, objectFit: "cover" }}
-                />
-              )}
-              {item.image && (
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  style={{ width: "100%", height: 120, objectFit: "cover" }}
-                />
-              )}
-              {item.thumbnail && (
-                <img
-                  src={item.thumbnail}
-                  alt={item.title}
-                  style={{ width: "100%", height: 120, objectFit: "cover" }}
-                />
-              )}
+              {/* Image/Thumbnail */}
+              <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#000" }}>
+                {item.images && item.images.length > 0 && (
+                  <img
+                    src={item.images[0]}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+                {item.thumbnail && (
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+                {item.type === "video" && !item.thumbnail && (
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    height: "100%",
+                    color: "#fff",
+                    fontSize: "3rem"
+                  }}>
+                    ▶
+                  </div>
+                )}
+                {/* Type badge */}
+                <div style={{
+                  position: "absolute",
+                  top: "8px",
+                  left: "8px",
+                  background: "rgba(0,0,0,0.7)",
+                  color: "#fff",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  textTransform: "uppercase"
+                }}>
+                  {item.type}
+                </div>
+              </div>
+              
               <div
                 style={{
-                  padding: "12px 14px 10px 14px",
+                  padding: "1rem",
                   flex: 1,
                   display: "flex",
                   flexDirection: "column",
@@ -726,47 +1357,91 @@ function SavedSection() {
                 <div
                   style={{
                     fontWeight: 600,
-                    fontSize: 16,
-                    marginBottom: 6,
+                    fontSize: "1rem",
+                    marginBottom: "0.5rem",
                     color: "#222",
-                    whiteSpace: "nowrap",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    lineHeight: "1.4",
+                    minHeight: "2.8rem"
                   }}
+                  title={item.title}
                 >
                   {item.title}
                 </div>
-                <div style={{ fontSize: 13, color: "#888", marginBottom: 8 }}>
-                  {item.type === "post"
-                    ? "Post"
-                    : item.type === "news"
-                    ? "News"
-                    : "Video"}
+                <div style={{ 
+                  fontSize: "0.875rem", 
+                  color: "#666",
+                  marginBottom: "0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem"
+                }}>
+                  {item.author?.username && (
+                    <span>By {item.author.username}</span>
+                  )}
                 </div>
-                <button
-                  onClick={() =>
-                    item.type === "post"
-                      ? handleRemovePost(item._id)
-                      : item.type === "news"
-                      ? handleRemoveNews(item._id)
-                      : handleRemoveVideo(item._id)
-                  }
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    background: "#B71C1C",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "3px 10px",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  Remove
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <button
+                    onClick={() => {
+                      const endpoint = item.type === "post" 
+                        ? `/api/posts/${item._id}/unsave`
+                        : item.type === "video"
+                        ? `/api/videos/${item._id}/save`
+                        : item.type === "news"
+                        ? `/api/news/${item._id}/save`
+                        : `/api/community/${item._id}/save`;
+                      post(endpoint, {}).then(() => {
+                        if (item.type === "post") handleRemovePost(item._id);
+                        else if (item.type === "news") handleRemoveNews(item._id);
+                        else if (item.type === "video") handleRemoveVideo(item._id);
+                        else setSavedCommunity(prev => prev.filter(p => p._id !== item._id));
+                      });
+                    }}
+                    style={{
+                      flex: 1,
+                      background: "#f0f0f0",
+                      color: "#333",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "0.5rem",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      cursor: "pointer",
+                      transition: "background 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = "#e0e0e0"}
+                    onMouseLeave={(e) => e.target.style.background = "#f0f0f0"}
+                  >
+                    Unsave
+                  </button>
+                  <button
+                    onClick={() => {
+                      const url = item.type === "video" 
+                        ? `/video/${item._id}`
+                        : `/post/${item._id}`;
+                      window.location.href = url;
+                    }}
+                    style={{
+                      flex: 1,
+                      background: "#B71C1C",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "0.5rem",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      cursor: "pointer",
+                      transition: "background 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = "#8B0000"}
+                    onMouseLeave={(e) => e.target.style.background = "#B71C1C"}
+                  >
+                    View
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1542,6 +2217,7 @@ function PostDetailPage() {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
   const [post, setPost] = React.useState(null);
+  const [postType, setPostType] = React.useState("post"); // "post" or "community"
   const [liked, setLiked] = React.useState(false);
   const [likesCount, setLikesCount] = React.useState(0);
   const [saved, setSaved] = React.useState(false);
@@ -1549,27 +2225,93 @@ function PostDetailPage() {
   const [comments, setComments] = React.useState([]);
   const [commentText, setCommentText] = React.useState("");
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
   const [commentLoading, setCommentLoading] = React.useState(false);
 
   React.useEffect(() => {
+    if (!id) {
+      setError("Invalid post ID");
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
-    get(`/api/posts/${id}`)
-      .then((post) => {
-        setPost(post);
-        setLiked(isAuthenticated ? post.likes?.includes(user?._id) : false);
-        setLikesCount(post.likes?.length || 0);
-        setSaved(isAuthenticated ? post.savedBy?.includes(user?._id) : false);
-        setSavedCount(post.savedBy?.length || 0);
+    setError(null);
+    
+    // Try to fetch as regular post first, then community post
+    const fetchPost = async () => {
+      let postFound = false;
+      
+      // Try regular post first
+      try {
+        const post = await get(`/api/posts/${id}`);
+        if (post && post._id) {
+          setPost(post);
+          setPostType("post");
+          setLiked(isAuthenticated ? post.likes?.includes(user?._id) : false);
+          setLikesCount(post.likes?.length || 0);
+          setSaved(isAuthenticated ? post.savedBy?.includes(user?._id) : false);
+          setSavedCount(post.savedBy?.length || 0);
+          setLoading(false);
+          postFound = true;
+          // Fetch comments for regular post
+          get(`/api/comments/${id}/comments?type=post`)
+            .then(setComments)
+            .catch((err) => {
+              console.error("Error fetching comments:", err);
+              setComments([]);
+            });
+          return;
+        }
+      } catch (err) {
+        // If regular post fails, try community post (don't log error yet)
+        console.log("Regular post not found, trying community post...");
+      }
+      
+      // Try community post if regular post failed
+      if (!postFound) {
+        try {
+          const communityPost = await get(`/api/community/${id}`);
+          if (communityPost && communityPost._id) {
+            setPost(communityPost);
+            setPostType("community");
+            setLiked(isAuthenticated ? communityPost.likes?.includes(user?._id) : false);
+            setLikesCount(communityPost.likes?.length || 0);
+            setSaved(false);
+            setSavedCount(0);
+            setLoading(false);
+            postFound = true;
+            // Fetch comments for community post
+            get(`/api/comments/${id}/comments?type=community`)
+              .then(setComments)
+              .catch((err) => {
+                console.error("Error fetching comments:", err);
+                setComments([]);
+              });
+            return;
+          }
+        } catch (communityErr) {
+          console.error("Error fetching community post:", communityErr);
+        }
+      }
+      
+      // If both fail
+      if (!postFound) {
+        setError("Post not found");
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-    get(`/api/comments/${id}/comments?type=post`).then(setComments);
+      }
+    };
+    
+    fetchPost();
   }, [id, isAuthenticated, user]);
 
   const handleLike = async () => {
     if (!isAuthenticated) return alert("Please login to like posts");
     try {
-      const res = await apiPost(`/api/posts/${id}/like`, {});
+      const endpoint = postType === "community" 
+        ? `/api/community/${id}/like`
+        : `/api/posts/${id}/like`;
+      const res = await apiPost(endpoint, {});
       setLiked(res.liked);
       setLikesCount(res.likesCount);
     } catch (err) {
@@ -1579,6 +2321,11 @@ function PostDetailPage() {
 
   const handleSave = async () => {
     if (!isAuthenticated) return alert("Please login to save posts");
+    // Community posts don't have save functionality yet
+    if (postType === "community") {
+      alert("Save functionality not available for community posts");
+      return;
+    }
     try {
       const res = await apiPost(
         `/api/posts/${id}/${saved ? "unsave" : "save"}`,
@@ -1593,8 +2340,9 @@ function PostDetailPage() {
 
   const handleShare = () => {
     const url = window.location.href;
+    const title = post.title || post.content?.slice(0, 50) || "Check out this post";
     if (navigator.share) {
-      navigator.share({ title: post.title, url });
+      navigator.share({ title, url });
     } else {
       navigator.clipboard.writeText(url);
       alert("Link copied to clipboard!");
@@ -1608,18 +2356,61 @@ function PostDetailPage() {
     try {
       await apiPost(`/api/comments/${id}/comment`, {
         text: commentText,
-        type: "post",
+        type: postType === "community" ? "community" : "post",
       });
       setCommentText("");
       // Refresh comments
-      get(`/api/comments/${id}/comments?type=post`).then(setComments);
+      const commentType = postType === "community" ? "community" : "post";
+      get(`/api/comments/${id}/comments?type=${commentType}`).then(setComments);
     } catch (err) {
       alert("Failed to add comment");
     }
     setCommentLoading(false);
   };
 
-  if (loading || !post) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "2rem 1rem", textAlign: "center" }}>
+        <div style={{ fontSize: 18, color: "#666" }}>Loading post...</div>
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "2rem 1rem" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 18,
+            boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+            padding: "2rem 1.5rem",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ color: "#B71C1C", marginBottom: 10 }}>Post Not Found</h2>
+          <p style={{ color: "#666", marginBottom: 20 }}>
+            {error || "The post you're looking for doesn't exist or has been removed."}
+          </p>
+          <button
+            onClick={() => window.history.back()}
+            style={{
+              background: "#2196f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 20px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "2rem 1rem" }}>
       <div
@@ -1634,13 +2425,15 @@ function PostDetailPage() {
         {post.images && post.images.length > 0 && (
           <img
             src={post.images[0]}
-            alt={post.title}
+            alt={post.title || "Post image"}
             style={{ width: "100%", borderRadius: 12, marginBottom: 18 }}
           />
         )}
-        <h2 style={{ fontWeight: 700, color: "#B71C1C", marginBottom: 10 }}>
-          {post.title}
-        </h2>
+        {post.title && (
+          <h2 style={{ fontWeight: 700, color: "#B71C1C", marginBottom: 10 }}>
+            {post.title}
+          </h2>
+        )}
         <div
           style={{
             display: "flex",
@@ -1650,9 +2443,12 @@ function PostDetailPage() {
           }}
         >
           <img
-            src={post.author?.avatar}
+            src={post.author?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"}
             alt={post.author?.username}
             style={{ width: 36, height: 36, borderRadius: "50%" }}
+            onError={(e) => {
+              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E";
+            }}
           />
           <span style={{ fontWeight: 600, color: "#222" }}>
             {post.author?.username}
@@ -1759,15 +2555,18 @@ function PostDetailPage() {
                 }}
               >
                 <img
-                  src={comment.author?.avatar}
+                  src={comment.author?.avatar || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E"}
                   alt={comment.author?.username}
                   style={{ width: 28, height: 28, borderRadius: "50%" }}
+                  onError={(e) => {
+                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e0e0e0'/%3E%3Ccircle cx='50' cy='35' r='15' fill='%23999'/%3E%3Cpath d='M20 85 Q20 65 50 65 Q80 65 80 85' fill='%23999'/%3E%3C/svg%3E";
+                  }}
                 />
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>
                     {comment.author?.username}
                   </div>
-                  <div style={{ fontSize: 14 }}>{comment.text}</div>
+                  <div style={{ fontSize: 14 }}>{comment.content}</div>
                   <div style={{ color: "#888", fontSize: 12 }}>
                     {new Date(comment.createdAt).toLocaleString()}
                   </div>

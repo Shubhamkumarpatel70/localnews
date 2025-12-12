@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const auth = require("../middleware/auth");
 const Video = require("../models/Video");
-const cloudinary = require("../config/cloudinary");
+const { uploadFile } = require("../utils/gridfs");
 
 // Configure multer for memory storage (for Cloudinary)
 const storage = multer.memoryStorage();
@@ -48,24 +48,16 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
       }
     }
 
-    // Upload video to Cloudinary
-    const videoResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            resource_type: "video",
-            folder: "videos",
-            public_id: `video_${req.user.id}_${Date.now()}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`,
-            transformation: [{ quality: "auto", fetch_format: "auto" }],
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        )
-        .end(req.file.buffer);
+    // Generate unique filename
+    const filename = `video_${req.user.id}_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}_${req.file.originalname}`;
+
+    // Upload video to MongoDB GridFS
+    const fileResult = await uploadFile(req.file.buffer, filename, {
+      contentType: req.file.mimetype,
+      uploadedBy: req.user.id,
+      originalName: req.file.originalname,
     });
 
     // Create video document
@@ -73,14 +65,14 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
       title: title.trim(),
       location: location || "",
       tags: parsedTags,
-      filename: videoResult.public_id,
+      filename: fileResult.filename,
       originalName: req.file.originalname,
-      path: videoResult.secure_url,
+      path: `/api/files/${fileResult.id}`, // URL to serve file from GridFS
       size: req.file.size,
       mimetype: req.file.mimetype,
       uploadedBy: req.user.id,
       isLive: isLive === "true" || isLive === true,
-      thumbnail: videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg"), // Cloudinary auto-generates thumbnail
+      thumbnail: `/api/files/${fileResult.id}/thumbnail`, // Can generate thumbnail later
     });
 
     await video.save();
@@ -97,11 +89,22 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
         uploadDate: video.uploadDate,
         isLive: video.isLive,
         thumbnail: video.thumbnail,
+        url: video.path,
       },
     });
   } catch (error) {
     console.error("Upload error:", error);
-    res.status(500).json({ message: "Server error during upload" });
+    // Return proper JSON error response
+    if (error.message) {
+      return res.status(500).json({ 
+        message: error.message || "Server error during upload",
+        error: error.toString()
+      });
+    }
+    res.status(500).json({ 
+      message: "Server error during upload",
+      error: "Unknown error occurred"
+    });
   }
 });
 
@@ -281,6 +284,68 @@ router.post("/:id/save", auth, async (req, res) => {
     await video.save();
     res.json({ saved, savedCount: video.savedBy.length });
   } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update video
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    // Check if user is the owner
+    if (video.uploadedBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const { title, description, location, tags, isPublished } = req.body;
+
+    if (title) video.title = title.trim();
+    if (description !== undefined) video.description = description;
+    if (location !== undefined) video.location = location;
+    if (tags) {
+      video.tags = Array.isArray(tags) ? tags : tags.split(",").map((t) => t.trim());
+    }
+    if (isPublished !== undefined) video.isPublished = isPublished;
+
+    await video.save();
+
+    const populatedVideo = await Video.findById(video._id).populate(
+      "uploadedBy",
+      "username avatar"
+    );
+
+    res.json(populatedVideo);
+  } catch (error) {
+    console.error("Error updating video:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete video
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    // Check if user is the owner
+    if (video.uploadedBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Delete video file from GridFS if needed
+    // Note: GridFS files are stored separately, you may want to delete them too
+    // For now, we'll just delete the video document
+    await video.deleteOne();
+
+    res.json({ message: "Video deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting video:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

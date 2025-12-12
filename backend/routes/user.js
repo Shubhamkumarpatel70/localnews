@@ -6,6 +6,7 @@ const auth = require("../middleware/auth");
 const userController = require("../controllers/userController");
 const Comment = require("../models/Comment");
 const cloudinary = require("../config/cloudinary");
+const isCloudinaryConfigured = cloudinary.isCloudinaryConfigured || (() => false);
 
 // Configure multer for memory storage (for Cloudinary)
 const storage = multer.memoryStorage();

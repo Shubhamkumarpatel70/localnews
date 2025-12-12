@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { get } from '../utils/api';
-import './Navbar.css';
 
 export default function Navbar({ onProfileClick }) {
   const [query, setQuery] = useState('');
@@ -28,40 +27,54 @@ export default function Navbar({ onProfileClick }) {
   };
 
   const handleSelect = news => {
-    // TODO: navigate to news detail page
     alert(`Go to news: ${news.title}`);
     setShowDropdown(false);
     setQuery('');
   };
 
   return (
-    <header className="navbar">
-      <div className="navbar-left">Local News</div>
-      <div className="navbar-center">
-        <div className="search-bar">
-          <SearchIcon className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search news..."
-            value={query}
-            onChange={handleChange}
-            onFocus={() => query.length > 1 && setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-          />
-          {showDropdown && suggestions.length > 0 && (
-            <ul className="suggestions">
-              {suggestions.map(s => (
-                <li key={s._id} onClick={() => handleSelect(s)}>{s.title}</li>
-              ))}
-            </ul>
-          )}
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="h-14 flex items-center justify-between px-4">
+        <div className="text-xl font-bold text-gray-900">Local News</div>
+        <div className="flex-1 max-w-2xl mx-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <SearchIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search news..."
+              value={query}
+              onChange={handleChange}
+              onFocus={() => query.length > 1 && setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+            {showDropdown && suggestions.length > 0 && (
+              <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                {suggestions.map(s => (
+                  <li 
+                    key={s._id} 
+                    onClick={() => handleSelect(s)}
+                    className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-indigo-50 hover:text-indigo-900"
+                  >
+                    {s.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="navbar-right">
-        <button className="profile-btn" onClick={onProfileClick} title="Account">
-          <AccountCircleIcon fontSize="large" />
-        </button>
+        <div className="flex items-center">
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors" 
+            onClick={onProfileClick} 
+            title="Account"
+          >
+            <AccountCircleIcon className="text-gray-700" fontSize="large" />
+          </button>
+        </div>
       </div>
     </header>
   );
-} 
+}
